@@ -258,6 +258,8 @@ namesForPeerSelection TraceDemoteLocalHotPeers {}   = ["DemoteLocalHotPeers"]
 namesForPeerSelection TraceDemoteHotFailed {}       = ["DemoteHotFailed"]
 namesForPeerSelection TraceDemoteHotDone {}         = ["DemoteHotDone"]
 namesForPeerSelection TraceDemoteAsynchronous {}    = ["DemoteAsynchronous"]
+namesForPeerSelection TraceDemoteLocalAsynchronous {}
+                                                    = ["DemoteAsynchronous"]
 namesForPeerSelection TraceGovernorWakeup {}        = ["GovernorWakeup"]
 namesForPeerSelection TraceChurnWait {}             = ["ChurnWait"]
 namesForPeerSelection TraceChurnMode {}             = ["ChurnMode"]
@@ -289,6 +291,7 @@ severityPeerSelection TraceDemoteLocalHotPeers   {} = Info
 severityPeerSelection TraceDemoteHotFailed       {} = Info
 severityPeerSelection TraceDemoteHotDone         {} = Info
 severityPeerSelection TraceDemoteAsynchronous    {} = Info
+severityPeerSelection TraceDemoteLocalAsynchronous {} = Warning
 severityPeerSelection TraceGovernorWakeup        {} = Info
 severityPeerSelection TraceChurnWait             {} = Info
 severityPeerSelection TraceChurnMode             {} = Info
@@ -439,6 +442,10 @@ instance LogFormatting (TracePeerSelection SockAddr) where
              ]
   forMachine _dtal (TraceDemoteAsynchronous msp) =
     mconcat [ "kind" .= String "DemoteAsynchronous"
+             , "state" .= toJSON msp
+             ]
+  forMachine _dtal (TraceDemoteLocalAsynchronous msp) =
+    mconcat [ "kind" .= String "DemoteLocalAsynchronous"
              , "state" .= toJSON msp
              ]
   forMachine _dtal TraceGovernorWakeup =
