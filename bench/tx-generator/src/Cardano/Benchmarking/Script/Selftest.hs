@@ -46,12 +46,12 @@ testScript protocolFile submitMode =
   , InitWallet genesisWallet
   , InitWallet splitWallet1
   , InitWallet splitWallet2
-  , InitWallet splitWallet3  
-  , InitWallet doneWallet  
+  , InitWallet splitWallet3
+  , InitWallet doneWallet
   , DefineSigningKey key
     (TextEnvelope { teType = TextEnvelopeType "GenesisUTxOSigningKey_ed25519"
                   , teDescription = fromString "Genesis Initial UTxO Signing Key"
-                 , teRawCBOR = "X \vl1~\182\201v(\152\250A\202\157h0\ETX\248h\153\171\SI/m\186\242D\228\NAK\182(&\162"})
+                 , teRaw = "X \vl1~\182\201v(\152\250A\202\157h0\ETX\248h\153\171\SI/m\186\242D\228\NAK\182(&\162"})
   , AddFund era genesisWallet
     (TxIn "900fc5da77a0747da53f7675cbb7d149d46779346dea2f879ab811ccc72a2162" (TxIx 0))
     (Lovelace 90000000000000) key
@@ -64,17 +64,17 @@ testScript protocolFile submitMode =
   , createChange splitWallet3 splitWallet3 10 30
   , createChange splitWallet3 splitWallet3 300 30
 -}
-  
+
   , Submit era submitMode $ Take 4000 $ Cycle
       $ NtoM fee splitWallet3 (PayToAddr key doneWallet) 2 2 Nothing Nothing
   ]
-  where    
+  where
     era = AnyCardanoEra AllegraEra
     fee = 1000000
     genesisWallet = WalletName "genesisWallet"
     splitWallet1 = WalletName "SplitWallet-1"
     splitWallet2 = WalletName "SplitWallet-2"
-    splitWallet3 = WalletName "SplitWallet-3"    
+    splitWallet3 = WalletName "SplitWallet-3"
     doneWallet = WalletName "doneWallet"
     key = KeyName "pass-partout"
     createChange :: WalletName -> WalletName -> Int -> Int -> Action

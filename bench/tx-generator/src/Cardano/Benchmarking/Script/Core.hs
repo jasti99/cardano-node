@@ -38,8 +38,8 @@ import           Cardano.TxGenerator.Fund as Fund
 import qualified Cardano.TxGenerator.FundQueue as FundQueue
 import           Cardano.TxGenerator.Tx
 import           Cardano.TxGenerator.Types
-import           Cardano.TxGenerator.UTxO
 import qualified Cardano.TxGenerator.Utils as Utils
+import           Cardano.TxGenerator.UTxO
 
 import           Cardano.Benchmarking.GeneratorTx as GeneratorTx (AsyncBenchmarkControl)
 import qualified Cardano.Benchmarking.GeneratorTx as GeneratorTx (readSigningKey, waitBenchmark,
@@ -93,7 +93,7 @@ readSigningKey name filePath =
     Right key -> setName name key
 
 parseSigningKey :: TextEnvelope -> Either TextEnvelopeError (SigningKey PaymentKey)
-parseSigningKey = deserialiseFromTextEnvelopeAnyOf types
+parseSigningKey = deserialiseFromTextEnvelopeAnyOfCBOR types
   where
     types :: [FromSomeType HasTextEnvelope (SigningKey PaymentKey)]
     types =

@@ -9,9 +9,9 @@ import           Control.Applicative (liftA2)
 import           Control.Monad
 import           Control.Monad.Trans.Except
 import           Control.Monad.Trans.RWS.CPS
-import           Data.ByteString.Base16 as Base16
 import           Data.ByteString as BS (ByteString)
-import           Data.Dependent.Sum ( (==>) )
+import           Data.ByteString.Base16 as Base16
+import           Data.Dependent.Sum ((==>))
 import           Data.DList (DList)
 import qualified Data.DList as DL
 import           Data.Text (Text)
@@ -21,7 +21,7 @@ import           Cardano.Api
 
 import           Cardano.Benchmarking.NixOptions
 import           Cardano.Benchmarking.Script.Setters
-import           Cardano.Benchmarking.Script.Store (KeyName, Name(..), WalletName)
+import           Cardano.Benchmarking.Script.Store (KeyName, Name (..), WalletName)
 import           Cardano.Benchmarking.Script.Types
 
 data CompileError where
@@ -68,7 +68,7 @@ initConstants = do
   emit $ DefineSigningKey keyNameBenchmarkDone keyBenchmarkDone
   where
     setConst :: Tag v -> v -> Compiler ()
-    setConst key val = emit $ Set $ key ==> val 
+    setConst key val = emit $ Set $ key ==> val
 
     setN :: Tag v -> (NixServiceOptions -> v) -> Compiler ()
     setN key s = askNixOption s >>= setConst key
@@ -78,7 +78,7 @@ importGenesisFunds = do
   logMsg "Importing Genesis Fund."
   wallet <- newWallet "genesis_wallet"
   era <- askNixOption _nix_era
-  fee <- askNixOption _nix_tx_fee  
+  fee <- askNixOption _nix_tx_fee
   cmd1 (ReadSigningKey keyNameGenesisInputFund) _nix_sigKey
   emit $ Submit era LocalSocket $ SecureGenesis fee wallet keyNameGenesisInputFund keyNameTxGenFunds
   delay
@@ -108,7 +108,7 @@ splittingPhase srcWallet = do
   tx_count <- askNixOption _nix_tx_count
   inputs_per_tx <- askNixOption _nix_inputs_per_tx
   tx_fee <- askNixOption _nix_tx_fee
-  era <- askNixOption _nix_era  
+  era <- askNixOption _nix_era
   minValuePerInput <- _minValuePerInput <$> evilFeeMagic
   finalDest <- newWallet "final_split_wallet"
   splitSteps <- splitSequenceWalletNames srcWallet finalDest $ unfoldSplitSequence tx_fee minValuePerInput (tx_count * inputs_per_tx)
@@ -128,7 +128,7 @@ splittingPhase srcWallet = do
           FullSplits txCount -> Take txCount $ Cycle $ SplitN tx_fee src payMode maxOutputsPerTx
     emit $ Submit era LocalSocket generator
     delay
-    logMsg "Splitting step: Done"    
+    logMsg "Splitting step: Done"
 
   plutusPayMode :: DstWallet -> Compiler PayMode
   plutusPayMode dst = do
@@ -202,13 +202,13 @@ data Fees = Fees {
     _safeCollateral :: Lovelace
   , _minValuePerInput :: Lovelace
   }
-  
+
 evilFeeMagic :: Compiler Fees
 evilFeeMagic = do
   (Quantity tx_fee) <- lovelaceToQuantity <$> askNixOption _nix_tx_fee
-  plutusMode <- askNixOption _nix_plutusMode  
+  plutusMode <- askNixOption _nix_plutusMode
   inputs_per_tx <- askNixOption _nix_inputs_per_tx
-  outputs_per_tx <- askNixOption _nix_outputs_per_tx  
+  outputs_per_tx <- askNixOption _nix_outputs_per_tx
   (Quantity min_utxo_value)  <- lovelaceToQuantity <$> askNixOption _nix_min_utxo_value
   let
     scriptFees = 5000000;
@@ -233,7 +233,7 @@ logMsg = emit . LogMsg
 
 cmd1 :: (v -> Action) -> (NixServiceOptions -> v) -> Compiler ()
 cmd1 cmd arg = emit . cmd =<< askNixOption arg
-  
+
 askNixOption :: (NixServiceOptions -> v) -> Compiler v
 askNixOption = asks
 
@@ -267,7 +267,7 @@ parseKey x = case Base16.decode x of
   Right addr ->  TextEnvelope
     { teType = TextEnvelopeType "PaymentSigningKeyShelley_ed25519"
     , teDescription = "Payment Signing Key"
-    , teRawCBOR = addr
+    , teRaw = addr
     }
 
 
