@@ -477,7 +477,7 @@ module Cardano.Api (
     textEnvelopeRawCBOR,
     textEnvelopeToJSON,
     serialiseToTextEnvelope,
-    deserialiseFromTextEnvelope,
+    deserialiseFromTextEnvelopeCBOR,
     readFileTextEnvelope,
     writeFileTextEnvelope,
     writeFileTextEnvelopeWithOwnerPermissions,
@@ -500,7 +500,7 @@ module Cardano.Api (
 
     -- *** Reading one of several key types
     FromSomeType(..),
-    deserialiseFromTextEnvelopeAnyOf,
+    deserialiseFromTextEnvelopeAnyOfCBOR,
     readFileTextEnvelopeAnyOf,
 
     -- * Errors

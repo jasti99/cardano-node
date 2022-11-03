@@ -43,9 +43,9 @@ import           Cardano.Prelude
 import           Control.Monad.Trans.Except.Extra (firstExceptT, handleIOExceptT, hoistEither)
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Builder as Builder
 import qualified Data.ByteString.Char8 as BSC
+import qualified Data.ByteString.Lazy as LBS
 import qualified Data.List.NonEmpty as NE
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
@@ -142,7 +142,7 @@ deserialiseInput asType acceptedFormats inputBs =
     deserialiseTextEnvelope = do
       let textEnvRes :: Either TextEnvelopeError a
           textEnvRes =
-            deserialiseFromTextEnvelope asType
+            deserialiseFromTextEnvelopeCBOR asType
               =<< first TextEnvelopeAesonDecodeError (Aeson.eitherDecodeStrict' inputBs)
       case textEnvRes of
         Right res -> DeserialiseInputSuccess res
@@ -215,7 +215,7 @@ deserialiseInputAnyOf bech32Types textEnvTypes inputBs =
     deserialiseTextEnvelope = do
       let textEnvRes :: Either TextEnvelopeError b
           textEnvRes =
-            deserialiseFromTextEnvelopeAnyOf textEnvTypes
+            deserialiseFromTextEnvelopeAnyOfCBOR textEnvTypes
               =<< first TextEnvelopeAesonDecodeError (Aeson.eitherDecodeStrict' inputBs)
       case textEnvRes of
         Right res -> DeserialiseInputSuccess res
