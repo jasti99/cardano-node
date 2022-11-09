@@ -10,6 +10,7 @@ module Cardano.CLI.Shelley.Run.Key
 
     -- * Exports for testing
   , decodeBech32
+  , readSigningKeyFile
   ) where
 
 import           Cardano.Prelude
