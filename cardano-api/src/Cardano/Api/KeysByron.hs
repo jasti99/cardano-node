@@ -27,7 +27,7 @@ module Cardano.Api.KeysByron (
     ByronKeyFormat(..),
 
     SomeByronSigningKey(..),
-    toByronSigningKey
+    toByronSigningKey,
   ) where
 
 import           Cardano.Prelude (cborError, toCborError)
@@ -52,8 +52,8 @@ import qualified Cardano.Crypto.Hashing as Byron
 import qualified Cardano.Crypto.Signing as Byron
 import qualified Cardano.Crypto.Wallet as Wallet
 
-import           Cardano.Api.HasTypeProxy
 import           Cardano.Api.Hash
+import           Cardano.Api.HasTypeProxy
 import           Cardano.Api.Key
 import           Cardano.Api.KeysShelley
 import           Cardano.Api.SerialiseCBOR
@@ -295,3 +295,4 @@ instance CastVerificationKeyRole ByronKeyLegacy ByronKey where
 
 instance IsByronKey ByronKeyLegacy where
   byronKeyFormat = ByronLegacyKeyFormat
+
