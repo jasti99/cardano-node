@@ -133,6 +133,10 @@ constraints:
   , small-steps-test == 0.1.1.1
   , vector-map == 0.1.1.1
 
+-- We'll need this once ouroboros has been pushed into CHaP
+-- extra-packages:
+--     ouroboros-consensus-cardano-tools == 0.1.0.0
+
 package snap-server
   flags: +openssl
 
@@ -174,4 +178,5 @@ source-repository-package
      ouroboros-network
      ouroboros-network-framework
      ouroboros-network-testing
+     ouroboros-consensus-cardano-tools     
 
