@@ -103,10 +103,9 @@ constraints:
   , prettyprinter-configurable == 0.1.0.0
   , plutus-ghc-stub == 8.6.5
   , word-array == 0.1.0.0
-  , word-array == 0.1.0.0
-  , io-classes == 0.2.0.0
-  , typed-protocols == 0.1.0.0
-  , typed-protocols-examples == 0.1.0.0
+  , io-classes >= 0.2.0.0
+  , typed-protocols == 0.1.0.1
+  , typed-protocols-examples == 0.1.0.1
 
   , cardano-ledger-alonzo == 0.1.1.1
   , cardano-ledger-alonzo-test == 0.1.1.1
