@@ -26,10 +26,10 @@ import           Cardano.Api
 import           Cardano.Api.Shelley
 
 import           Cardano.CLI.Helpers
-import           Cardano.CLI.Shelley.Key (InputDecodeError, PaymentVerifier (..),
-                   StakeVerifier (..), VerificationKeyTextOrFile,
-                   VerificationKeyTextOrFileError (..), generateKeyPair, readVerificationKeyOrFile,
-                   readVerificationKeyTextOrFileAnyOf, renderVerificationKeyTextOrFileError)
+import           Cardano.CLI.Shelley.Key (PaymentVerifier (..), StakeVerifier (..),
+                   VerificationKeyTextOrFile, VerificationKeyTextOrFileError (..), generateKeyPair,
+                   readVerificationKeyOrFile, readVerificationKeyTextOrFileAnyOf,
+                   renderVerificationKeyTextOrFileError)
 import           Cardano.CLI.Shelley.Parsers (AddressCmd (..), AddressKeyType (..), OutputFile (..))
 import           Cardano.CLI.Shelley.Run.Address.Info (ShelleyAddressInfoError, runAddressInfo)
 import           Cardano.CLI.Shelley.Run.Read

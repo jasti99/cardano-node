@@ -38,7 +38,7 @@ import           Cardano.Api.Shelley
 
 import qualified Cardano.CLI.Byron.Key as Byron
 import           Cardano.CLI.Shelley.Commands
-import           Cardano.CLI.Shelley.Key (InputDecodeError, readSigningKeyFileAnyOf)
+import           Cardano.CLI.Shelley.Key (readSigningKeyFileAnyOf)
 import           Cardano.CLI.Types (SigningKeyFile (..), VerificationKeyFile (..))
 
 
