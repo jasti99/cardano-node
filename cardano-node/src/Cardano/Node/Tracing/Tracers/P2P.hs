@@ -673,13 +673,13 @@ docPeerSelectionCounters = Documented
 -- PeerSelectionActions Tracer
 --------------------------------------------------------------------------------
 
-namesForPeerSelectionActions :: PeerSelectionActionsTrace ntnAddr -> [Text]
+namesForPeerSelectionActions :: PeerSelectionActionsTrace ntnAddr lAddr -> [Text]
 namesForPeerSelectionActions PeerStatusChanged   {}     = ["StatusChanged"]
 namesForPeerSelectionActions PeerStatusChangeFailure {} = ["StatusChangeFailure"]
 namesForPeerSelectionActions PeerMonitoringError {}     = ["MonitoringError"]
 namesForPeerSelectionActions PeerMonitoringResult {}    = ["MonitoringResult"]
 
-severityPeerSelectionActions :: PeerSelectionActionsTrace ntnAddr -> SeverityS
+severityPeerSelectionActions :: PeerSelectionActionsTrace ntnAddr lAddr -> SeverityS
 severityPeerSelectionActions PeerStatusChanged {}       = Info
 severityPeerSelectionActions PeerStatusChangeFailure {} = Error
 severityPeerSelectionActions PeerMonitoringError {}     = Error
@@ -687,7 +687,7 @@ severityPeerSelectionActions PeerMonitoringResult {}    = Debug
 
 -- TODO: Write PeerStatusChangeType ToJSON at ouroboros-network
 -- For that an export is needed at ouroboros-network
-instance LogFormatting (PeerSelectionActionsTrace SockAddr) where
+instance Show lAddr => LogFormatting (PeerSelectionActionsTrace SockAddr lAddr) where
   forMachine _dtal (PeerStatusChanged ps) =
     mconcat [ "kind" .= String "PeerStatusChanged"
              , "peerStatusChangeType" .= show ps
@@ -709,11 +709,11 @@ instance LogFormatting (PeerSelectionActionsTrace SockAddr) where
              ]
   forHuman = pack . show
 
-docPeerSelectionActions :: Documented (PeerSelectionActionsTrace ntnAddr)
+docPeerSelectionActions :: Documented (PeerSelectionActionsTrace ntnAddr lAddr)
 docPeerSelectionActions =
     addDocumentedNamespace  []  docPeerSelectionActions'
 
-docPeerSelectionActions' :: Documented (PeerSelectionActionsTrace ntnAddr)
+docPeerSelectionActions' :: Documented (PeerSelectionActionsTrace ntnAddr lAddr)
 docPeerSelectionActions' = Documented
   [  DocMsg
       ["StatusChanged"]

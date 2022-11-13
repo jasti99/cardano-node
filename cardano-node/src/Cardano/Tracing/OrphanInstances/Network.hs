@@ -419,8 +419,8 @@ instance HasPrivacyAnnotation (DebugPeerSelection addr)
 instance HasSeverityAnnotation (DebugPeerSelection addr) where
   getSeverityAnnotation _ = Debug
 
-instance HasPrivacyAnnotation (PeerSelectionActionsTrace SockAddr)
-instance HasSeverityAnnotation (PeerSelectionActionsTrace SockAddr) where
+instance HasPrivacyAnnotation (PeerSelectionActionsTrace SockAddr lAddr)
+instance HasSeverityAnnotation (PeerSelectionActionsTrace SockAddr lAddr) where
   getSeverityAnnotation ev =
    case ev of
      PeerStatusChanged {}       -> Info
@@ -677,9 +677,9 @@ instance HasTextFormatter (DebugPeerSelection SockAddr) where
   -- format.
   formatText _ obj = pack (show obj)
 
-instance Transformable Text IO (PeerSelectionActionsTrace SockAddr) where
+instance Show lAddr => Transformable Text IO (PeerSelectionActionsTrace SockAddr lAddr) where
   trTransformer = trStructuredText
-instance HasTextFormatter (PeerSelectionActionsTrace SockAddr) where
+instance Show lAddr => HasTextFormatter (PeerSelectionActionsTrace SockAddr lAddr) where
   formatText a _ = pack (show a)
 
 instance Transformable Text IO PeerSelectionCounters where
@@ -1657,7 +1657,7 @@ instance ToObject (DebugPeerSelection SockAddr) where
 
 -- TODO: Write PeerStatusChangeType ToJSON at ouroboros-network
 -- For that an export is needed at ouroboros-network
-instance ToObject (PeerSelectionActionsTrace SockAddr) where
+instance Show lAddr => ToObject (PeerSelectionActionsTrace SockAddr lAddr) where
   toObject _verb (PeerStatusChanged ps) =
     mconcat [ "kind" .= String "PeerStatusChanged"
              , "peerStatusChangeType" .= show ps

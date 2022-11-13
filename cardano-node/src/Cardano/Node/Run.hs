@@ -23,8 +23,7 @@ import           Cardano.Prelude hiding (ByteString, STM, atomically, show, take
 import           Data.IP (toSockAddr)
 import           Prelude (String, id, show)
 
-import           Control.Monad.Class.MonadSTM.Strict
-import qualified Control.Concurrent.Async as Async
+import           Control.Concurrent.Class.MonadSTM.Strict
 import           Control.Monad.Trans.Except.Extra (left)
 import           "contra-tracer" Control.Tracer
 import qualified Data.Map.Strict as Map

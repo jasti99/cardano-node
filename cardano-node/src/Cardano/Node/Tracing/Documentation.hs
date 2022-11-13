@@ -715,7 +715,7 @@ docTracers configFileName outputFileName _ _ _ = do
     configureTracers trConfig docPeerSelectionActions [peerSelectionActionsTr]
     peerSelectionActionsTrDoc <- documentTracer trConfig peerSelectionActionsTr
       (docPeerSelectionActions ::
-        Documented (PeerSelectionActionsTrace Socket.SockAddr))
+        Documented (PeerSelectionActionsTrace Socket.SockAddr LocalAddress))
 
     connectionManagerTr  <-  mkCardanoTracer
       trBase trForward mbTrEKG
