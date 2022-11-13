@@ -106,6 +106,7 @@ constraints:
   , io-classes >= 0.2.0.0
   , typed-protocols == 0.1.0.1
   , typed-protocols-examples == 0.1.0.1
+  , ekg-forward >= 0.2
 
   , cardano-ledger-alonzo == 0.1.1.1
   , cardano-ledger-alonzo-test == 0.1.1.1
