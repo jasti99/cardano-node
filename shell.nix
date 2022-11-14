@@ -4,6 +4,7 @@ let defaultCustomConfig = import ./nix/custom-config.nix defaultCustomConfig;
 in
 { withHoogle ? defaultCustomConfig.withHoogle
 , profileName ? defaultCustomConfig.localCluster.profileName
+, backendName ? defaultCustomConfig.localCluster.backendName
 , workbenchDevMode ? defaultCustomConfig.localCluster.workbenchDevMode
 , useCabalRun ? true
 , customConfig ? {
@@ -55,12 +56,21 @@ let
 
   haveGlibcLocales = pkgs.glibcLocales != null && stdenv.hostPlatform.libc == "glibc";
 
+  workbenchRun =
+    if backendName == "nomad"
+        then pkgs.nomad-workbench-for-profile
+            { inherit profileName useCabalRun profiled; }
+        # Supervidor by default.
+        else pkgs.supervisord-workbench-for-profile
+            { inherit profileName useCabalRun profiled; }
+    ;
+
   workbench-shell = with customConfig.localCluster;
     import ./nix/workbench/shell.nix
       { inherit pkgs lib haskellLib project;
         inherit setLocale haveGlibcLocales commandHelp;
         inherit cardano-mainnet-mirror;
-        inherit profileName workbenchDevMode useCabalRun;
+        inherit workbenchRun workbenchDevMode;
         inherit profiled withHoogle;
       };
 
