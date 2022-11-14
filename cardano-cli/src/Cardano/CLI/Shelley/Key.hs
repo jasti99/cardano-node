@@ -254,25 +254,22 @@ renderVerificationKeyTextOrFileError vkTextOrFileErr =
     VerificationKeyTextError err -> renderInputDecodeError err
     VerificationKeyFileError err -> Text.pack (displayError err)
 
--- | Deserialise a verification key from text or a verification key file given
--- that it is one of the provided types.
---
+-- | Deserialise a verification key from text or a verification key file.
 -- If a filepath is provided, the file can either be formatted as Bech32, hex,
 -- or text envelope.
 readVerificationKeyTextOrFileAnyOf
-  :: forall b.
-     [FromSomeType SerialiseAsBech32 SerialiseAsRawBytes b]
-  -> [FromSomeType HasTextEnvelope SerialiseAsCBOR b]
-  -> VerificationKeyTextOrFile
-  -> IO (Either VerificationKeyTextOrFileError b)
-readVerificationKeyTextOrFileAnyOf bech32Types textEnvTypes verKeyTextOrFile =
+  :: VerificationKeyTextOrFile
+  -> IO (Either VerificationKeyTextOrFileError SomeAddressVerificationKey)
+readVerificationKeyTextOrFileAnyOf verKeyTextOrFile =
   case verKeyTextOrFile of
     VktofVerificationKeyText vkText ->
       pure $ first VerificationKeyTextError $
-        deserialiseInputAnyOf bech32Types textEnvTypes (Text.encodeUtf8 vkText)
-    VktofVerificationKeyFile (VerificationKeyFile fp) ->
-      first VerificationKeyFileError
-        <$> readKeyFileAnyOf bech32Types textEnvTypes fp
+        deserialiseAnyVerificationKey (Text.encodeUtf8 vkText)
+    VktofVerificationKeyFile (VerificationKeyFile fp) -> do
+      vkBs <- liftIO $ BS.readFile fp
+      pure $ first VerificationKeyTextError $
+        deserialiseAnyVerificationKey vkBs
+
 
 -- | Verification key, verification key hash, or path to a verification key
 -- file.
