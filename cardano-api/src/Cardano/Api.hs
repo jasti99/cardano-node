@@ -431,6 +431,11 @@ module Cardano.Api (
     deserialiseInputAnyOf,
     renderInputDecodeError,
 
+    SomeAddressVerificationKey(..),
+    deserialiseAnyVerificationKey,
+    deserialiseAnyVerificationKeyBech32,
+    deserialiseAnyVerificationKeyTextEnvelope,
+
     -- ** CBOR
     SerialiseAsCBOR,
     ToCBOR,
