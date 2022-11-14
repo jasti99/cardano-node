@@ -90,7 +90,7 @@ import qualified Cardano.Ledger.Alonzo.Tx as Alonzo
 import qualified Cardano.Ledger.Alonzo.TxInfo as Alonzo
 import qualified Cardano.Ledger.Alonzo.TxWitness as Alonzo
 
-import qualified Plutus.V1.Ledger.Api as Plutus
+import qualified PlutusLedgerApi.V1 as Plutus
 
 import qualified Cardano.Ledger.Babbage as Babbage
 import           Cardano.Ledger.Babbage.PParams (BabbagePParamsHKD (..))

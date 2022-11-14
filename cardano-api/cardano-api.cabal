@@ -144,7 +144,7 @@ library
                       , ouroboros-network
                       , ouroboros-network-framework
                       , parsec
-                      , plutus-ledger-api
+                      , plutus-ledger-api:{plutus-ledger-api, plutus-ledger-api-testlib} ^>=1.1
                       , prettyprinter
                       , prettyprinter-configurable
                       , random
