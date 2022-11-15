@@ -43,7 +43,7 @@ case "$op" in
         # inside the container I get (from journald):
         # Nov 02 11:44:36 hostname cluster-18f3852f-e067-6394-8159-66a7b8da2ecc[1088457]: Error: Cannot open an HTTP server: socket.error reported -2
         # Nov 02 11:44:36 hostname cluster-18f3852f-e067-6394-8159-66a7b8da2ecc[1088457]: For help, use /nix/store/izqhlj5i1x9ldyn43d02kcy4mafmj3ci-python3.9-supervisor-4.2.4/bin/supervisord -h
-        setenvjqstr 'supervisord_url' "http://127.0.0.1:9001"
+        setenvjqstr 'supervisord_url' "unix:///tmp/supervisor.sock"
         # Look up `cluster` OCI image's name and tag (also Nix profile).
         setenvjqstr 'oci_image_name' ${WB_OCI_IMAGE_NAME:-$(cat "$profile_dir/clusterImageName")}
         setenvjqstr 'oci_image_tag'  ${WB_OCI_IMAGE_TAG:-$(cat  "$profile_dir/clusterImageTag")}
@@ -169,6 +169,7 @@ case "$op" in
         # constraints, resource exhaustion, etc), then the exit code will be 2.
         # Any other errors, including client connection issues or internal
         # errors, are indicated by exit code 1.
+        # FIXME: Timeout for "Deployment "XXX" in progress..."
         nomad job run -verbose "$dir/nomad/job-cluster.hcl"
         # Assuming that `nomad` placement is enough wait.
         local nomad_alloc_id=$(nomad job allocs -json cluster | jq -r '.[0].ID')
@@ -202,7 +203,7 @@ case "$op" in
         local supervisord_url=$(envjqr 'supervisord_url')
         local container_supervisor_nix=$(envjqr 'container_supervisor_nix')
         local container_supervisord_conf=$(envjqr 'container_supervisord_conf')
-        nomad alloc exec --task cluster "$nomad_alloc_id" "$container_supervisor_nix"/bin/supervisorctl --serverurl "$supervisord_url" --configuration "$container_supervisord_conf" start "$service"
+        nomad alloc exec --task "$service" "$nomad_alloc_id" "$container_supervisor_nix"/bin/supervisorctl --serverurl "$supervisord_url" --configuration "$container_supervisord_conf" start "$service"
         ;;
 
     # Nomad-specific
@@ -215,7 +216,7 @@ case "$op" in
         local supervisord_url=$(envjqr 'supervisord_url')
         local container_supervisor_nix=$(envjqr 'container_supervisor_nix')
         local container_supervisord_conf=$(envjqr 'container_supervisord_conf')
-        nomad alloc exec --task cluster "$nomad_alloc_id" "$container_supervisor_nix"/bin/supervisorctl --serverurl "$supervisord_url" --configuration "$container_supervisord_conf" stop "$service"
+        nomad alloc exec --task "$service" "$nomad_alloc_id" "$container_supervisor_nix"/bin/supervisorctl --serverurl "$supervisord_url" --configuration "$container_supervisord_conf" stop "$service"
         ;;
 
     # Nomad-specific
@@ -228,7 +229,7 @@ case "$op" in
         local supervisord_url=$(envjqr 'supervisord_url')
         local container_supervisor_nix=$(envjqr 'container_supervisor_nix')
         local container_supervisord_conf=$(envjqr 'container_supervisord_conf')
-        nomad alloc exec --task cluster "$nomad_alloc_id" "$container_supervisor_nix"/bin/supervisorctl --serverurl "$supervisord_url" --configuration "$container_supervisord_conf" status "$service" > /dev/null && true
+        nomad alloc exec --task "$service" "$nomad_alloc_id" "$container_supervisor_nix"/bin/supervisorctl --serverurl "$supervisord_url" --configuration "$container_supervisord_conf" status "$service" > /dev/null && true
         ;;
 
     start-node )
@@ -475,6 +476,10 @@ nomad_create_folders_and_config() {
             volumes {
               enabled = true
             }
+            recover_stopped = false
+            gc {
+              container = false
+            }
           }
         }
 EOF
@@ -581,16 +586,30 @@ job "cluster" {
       mode = "host"
     }
 EOF
-    local task_stanza_name="cluster"
-    local task_stanza_file="$dir/nomad/job-cluster-task-$task_stanza_name.hcl"
-    nomad_create_task_stanza "$task_stanza_file" "$task_stanza_name" "$podman_volumes"
+    # Cluster
+    local task_stanza_name_c="cluster"
+    local task_stanza_file_c="$dir/nomad/job-cluster-task-$task_stanza_name_c.hcl"
+    nomad_create_task_stanza "$task_stanza_file_c" "$task_stanza_name_c" "$podman_volumes"
+cat "$task_stanza_file_c" >> "$dir/nomad/job-cluster.hcl"
+    # Nodes
+    for node in $(jq_tolist 'keys' "$dir"/node-specs.json)
+    do
+      local task_stanza_name="$node"
+      local task_stanza_file="$dir/nomad/job-cluster-task-$task_stanza_name.hcl"
+      nomad_create_task_stanza "$task_stanza_file" "$task_stanza_name" "$podman_volumes"
 cat "$task_stanza_file" >> "$dir/nomad/job-cluster.hcl"
-
-    local task_stanza_name="cluster2"
-    local task_stanza_file="$dir/nomad/job-cluster-task-$task_stanza_name.hcl"
-    nomad_create_task_stanza "$task_stanza_file" "$task_stanza_name" "$podman_volumes"
-cat "$task_stanza_file" >> "$dir/nomad/job-cluster.hcl"
-
+    done
+    # Tracer
+    local task_stanza_name_t="tracer"
+    local task_stanza_file_t="$dir/nomad/job-cluster-task-$task_stanza_name_t.hcl"
+    nomad_create_task_stanza "$task_stanza_file_t" "$task_stanza_name_t" "$podman_volumes"
+cat "$task_stanza_file_t" >> "$dir/nomad/job-cluster.hcl"
+    # Generator
+    local task_stanza_name_g="generator"
+    local task_stanza_file_g="$dir/nomad/job-cluster-task-$task_stanza_name_g.hcl"
+    nomad_create_task_stanza "$task_stanza_file_g" "$task_stanza_name_g" "$podman_volumes"
+cat "$task_stanza_file_g" >> "$dir/nomad/job-cluster.hcl"
+    # The end.
 cat >> "$dir/nomad/job-cluster.hcl" <<- EOF
   }
 }
@@ -620,12 +639,13 @@ task "$name" {
     #logging = {
     #  driver = "nomad"
     #}
+    hostname = "$name"
+    network_mode = "host"
     tmpfs = [
       "/tmp"
     ]
     volumes = ${podman_volumes}
     working_dir = "${container_workdir}"
-    hostname = "$name"
   }
   env = {
     SUPERVISOR_NIX = "${container_supervisor_nix}"
