@@ -15,8 +15,8 @@ import           Cardano.Api.Shelley (PlutusScript (..), ProtocolParameters (..)
                    protocolParamCostModels, toPlutusData)
 import           Cardano.Ledger.Alonzo.TxInfo (exBudgetToExUnits)
 
-import qualified Plutus.V1.Ledger.Api as Plutus
-import           Plutus.V1.Ledger.Contexts (ScriptContext (..), ScriptPurpose (..), TxInfo (..),
+import qualified PlutusLedgerApi.V1 as Plutus
+import           PlutusLedgerApi.V1.Contexts (ScriptContext (..), ScriptPurpose (..), TxInfo (..),
                    TxOutRef (..))
 
 import           Cardano.CLI.Shelley.Run.Read
