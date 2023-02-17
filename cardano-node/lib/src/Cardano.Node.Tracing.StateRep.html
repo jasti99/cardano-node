@@ -1,0 +1,1060 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE DeriveAnyClass #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DeriveGeneric #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE GADTs #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE LambdaCase #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE StandaloneDeriving #-}</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# OPTIONS_GHC -Wno-orphans #-}</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Node.Tracing.StateRep</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#AddedToCurrentChain"><span class="hs-identifier">AddedToCurrentChain</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#InitChainSelection"><span class="hs-identifier">InitChainSelection</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeState"><span class="hs-identifier">NodeState</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#OpeningDbs"><span class="hs-identifier">OpeningDbs</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#Replays"><span class="hs-identifier">Replays</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#StartupState"><span class="hs-identifier">StartupState</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#traceNodeStateChainDB"><span class="hs-identifier">traceNodeStateChainDB</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#traceNodeStateStartup"><span class="hs-identifier">traceNodeStateStartup</span></a></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#traceNodeStateShutdown"><span class="hs-identifier">traceNodeStateShutdown</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///home/runner/work/cardano-node/cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.7/cardano-api-1.36.0/noopt/doc/html/cardano-api/src"><span class="hs-identifier">Cardano.Api</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///home/runner/work/cardano-node/cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.7/cardano-api-1.36.0/noopt/doc/html/cardano-api/src"><span class="hs-identifier">textShow</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Cardano.Logging</span></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier">Data.Text</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier">Text</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/time-1.9.3/src"><span class="hs-identifier">Data.Time.Clock</span></a></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/time-1.9.3/src"><span class="hs-identifier">Data.Time.Clock.POSIX</span></a></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier">GHC.Generics</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier">Generic</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Node.Protocol.Types.html"><span class="hs-identifier">Cardano.Node.Protocol.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Node.Protocol.Types.html#SomeConsensusProtocol"><span class="hs-identifier">SomeConsensusProtocol</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ouroboros.Consensus.Block.RealPoint</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">RP</span></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ouroboros.Consensus.Node.NetworkProtocolVersion</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">NPV</span></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ouroboros.Consensus.Storage.ChainDB</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">ChainDB</span></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Ouroboros.Consensus.Storage.ImmutableDB.Chunks.Internal</span></span><span>
+</span><span id="line-37"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><span class="hs-identifier">Ouroboros.Consensus.Storage.LedgerDB.OnDisk</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">LgrDb</span></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Ouroboros.Network.Block</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">pointSlot</span></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Node.Handlers.Shutdown.html"><span class="hs-identifier">Cardano.Node.Handlers.Shutdown</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Node.Handlers.Shutdown.html#ShutdownTrace"><span class="hs-identifier">ShutdownTrace</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-41"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="Cardano.Node.Startup.html"><span class="hs-identifier">Cardano.Node.Startup</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Startup</span></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Cardano.Slotting.Slot</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">EpochNo</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">SlotNo</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">WithOrigin</span></span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Tracing.OrphanInstances.Network.html"><span class="hs-identifier">Cardano.Tracing.OrphanInstances.Network</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679684086"><span id="local-6989586621679684088"><span class="annot"><span class="hs-identifier hs-type">FromJSON</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ChunkNo</span></span></span></span><span>
+</span><span id="line-46"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679684081"><span id="local-6989586621679684083"><span class="annot"><span class="hs-identifier hs-type">FromJSON</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithOrigin</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679684073"><span id="local-6989586621679684075"><span id="local-6989586621679684077"><span id="local-6989586621679684079"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">ChunkNo</span></span></span></span></span></span><span>
+</span><span id="line-49"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679684064"><span id="local-6989586621679684066"><span id="local-6989586621679684068"><span id="local-6989586621679684070"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithOrigin</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-50"></span><span>
+</span><span id="line-51"></span><span id="local-6989586621679684062"><span id="local-6989586621679684063"></span></span><span class="hs-keyword">data</span><span> </span><span id="OpeningDbs"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#OpeningDbs"><span class="hs-identifier hs-var">OpeningDbs</span></a></span></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="StartedOpeningImmutableDB"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#StartedOpeningImmutableDB"><span class="hs-identifier hs-var">StartedOpeningImmutableDB</span></a></span></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="OpenedImmutableDB"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#OpenedImmutableDB"><span class="hs-identifier hs-var">OpenedImmutableDB</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithOrigin</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ChunkNo</span></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="StartedOpeningVolatileDB"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#StartedOpeningVolatileDB"><span class="hs-identifier hs-var">StartedOpeningVolatileDB</span></a></span></span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="OpenedVolatileDB"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#OpenedVolatileDB"><span class="hs-identifier hs-var">OpenedVolatileDB</span></a></span></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="StartedOpeningLgrDB"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#StartedOpeningLgrDB"><span class="hs-identifier hs-var">StartedOpeningLgrDB</span></a></span></span><span>
+</span><span id="line-57"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="OpenedLgrDB"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#OpenedLgrDB"><span class="hs-identifier hs-var">OpenedLgrDB</span></a></span></span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x. OpeningDbs -&gt; Rep OpeningDbs x)
+-&gt; (forall x. Rep OpeningDbs x -&gt; OpeningDbs) -&gt; Generic OpeningDbs
+forall x. Rep OpeningDbs x -&gt; OpeningDbs
+forall x. OpeningDbs -&gt; Rep OpeningDbs x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep OpeningDbs x -&gt; OpeningDbs
+$cfrom :: forall x. OpeningDbs -&gt; Rep OpeningDbs x
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></a></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679684049"><span id="local-6989586621679684051"><span class="annot"><span class="annottext">Value -&gt; Parser [OpeningDbs]
+Value -&gt; Parser OpeningDbs
+(Value -&gt; Parser OpeningDbs)
+-&gt; (Value -&gt; Parser [OpeningDbs]) -&gt; FromJSON OpeningDbs
+forall a.
+(Value -&gt; Parser a) -&gt; (Value -&gt; Parser [a]) -&gt; FromJSON a
+parseJSONList :: Value -&gt; Parser [OpeningDbs]
+$cparseJSONList :: Value -&gt; Parser [OpeningDbs]
+parseJSON :: Value -&gt; Parser OpeningDbs
+$cparseJSON :: Value -&gt; Parser OpeningDbs
+</span><a href="#local-6989586621679684049"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">FromJSON</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679684041"><span id="local-6989586621679684043"><span id="local-6989586621679684045"><span id="local-6989586621679684047"><span class="annot"><span class="annottext">[OpeningDbs] -&gt; Encoding
+[OpeningDbs] -&gt; Value
+OpeningDbs -&gt; Encoding
+OpeningDbs -&gt; Value
+(OpeningDbs -&gt; Value)
+-&gt; (OpeningDbs -&gt; Encoding)
+-&gt; ([OpeningDbs] -&gt; Value)
+-&gt; ([OpeningDbs] -&gt; Encoding)
+-&gt; ToJSON OpeningDbs
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; ToJSON a
+toEncodingList :: [OpeningDbs] -&gt; Encoding
+$ctoEncodingList :: [OpeningDbs] -&gt; Encoding
+toJSONList :: [OpeningDbs] -&gt; Value
+$ctoJSONList :: [OpeningDbs] -&gt; Value
+toEncoding :: OpeningDbs -&gt; Encoding
+$ctoEncoding :: OpeningDbs -&gt; Encoding
+toJSON :: OpeningDbs -&gt; Value
+$ctoJSON :: OpeningDbs -&gt; Value
+</span><a href="#local-6989586621679684041"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></a></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span id="local-6989586621679684039"><span id="local-6989586621679684040"></span></span><span class="hs-keyword">data</span><span> </span><span id="Replays"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#Replays"><span class="hs-identifier hs-var">Replays</span></a></span></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="ReplayFromGenesis"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#ReplayFromGenesis"><span class="hs-identifier hs-var">ReplayFromGenesis</span></a></span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithOrigin</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span class="hs-special">)</span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ReplayFromSnapshot"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#ReplayFromSnapshot"><span class="hs-identifier hs-var">ReplayFromSnapshot</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithOrigin</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithOrigin</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span class="hs-special">)</span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ReplayedBlock"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#ReplayedBlock"><span class="hs-identifier hs-var">ReplayedBlock</span></a></span></span><span>      </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithOrigin</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">WithOrigin</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span class="hs-special">)</span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x. Replays -&gt; Rep Replays x)
+-&gt; (forall x. Rep Replays x -&gt; Replays) -&gt; Generic Replays
+forall x. Rep Replays x -&gt; Replays
+forall x. Replays -&gt; Rep Replays x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep Replays x -&gt; Replays
+$cfrom :: forall x. Replays -&gt; Rep Replays x
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></a></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679684030"><span id="local-6989586621679684032"><span class="annot"><span class="annottext">Value -&gt; Parser [Replays]
+Value -&gt; Parser Replays
+(Value -&gt; Parser Replays)
+-&gt; (Value -&gt; Parser [Replays]) -&gt; FromJSON Replays
+forall a.
+(Value -&gt; Parser a) -&gt; (Value -&gt; Parser [a]) -&gt; FromJSON a
+parseJSONList :: Value -&gt; Parser [Replays]
+$cparseJSONList :: Value -&gt; Parser [Replays]
+parseJSON :: Value -&gt; Parser Replays
+$cparseJSON :: Value -&gt; Parser Replays
+</span><a href="#local-6989586621679684030"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">FromJSON</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679684022"><span id="local-6989586621679684024"><span id="local-6989586621679684026"><span id="local-6989586621679684028"><span class="annot"><span class="annottext">[Replays] -&gt; Encoding
+[Replays] -&gt; Value
+Replays -&gt; Encoding
+Replays -&gt; Value
+(Replays -&gt; Value)
+-&gt; (Replays -&gt; Encoding)
+-&gt; ([Replays] -&gt; Value)
+-&gt; ([Replays] -&gt; Encoding)
+-&gt; ToJSON Replays
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; ToJSON a
+toEncodingList :: [Replays] -&gt; Encoding
+$ctoEncodingList :: [Replays] -&gt; Encoding
+toJSONList :: [Replays] -&gt; Value
+$ctoJSONList :: [Replays] -&gt; Value
+toEncoding :: Replays -&gt; Encoding
+$ctoEncoding :: Replays -&gt; Encoding
+toJSON :: Replays -&gt; Value
+$ctoJSON :: Replays -&gt; Value
+</span><a href="#local-6989586621679684022"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></a></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span id="local-6989586621679684020"><span id="local-6989586621679684021"></span></span><span class="hs-keyword">data</span><span> </span><span id="InitChainSelection"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#InitChainSelection"><span class="hs-identifier hs-var">InitChainSelection</span></a></span></span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="InitChainStartedSelection"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#InitChainStartedSelection"><span class="hs-identifier hs-var">InitChainStartedSelection</span></a></span></span><span>
+</span><span id="line-68"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="InitChainSelected"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#InitChainSelected"><span class="hs-identifier hs-var">InitChainSelected</span></a></span></span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x. InitChainSelection -&gt; Rep InitChainSelection x)
+-&gt; (forall x. Rep InitChainSelection x -&gt; InitChainSelection)
+-&gt; Generic InitChainSelection
+forall x. Rep InitChainSelection x -&gt; InitChainSelection
+forall x. InitChainSelection -&gt; Rep InitChainSelection x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep InitChainSelection x -&gt; InitChainSelection
+$cfrom :: forall x. InitChainSelection -&gt; Rep InitChainSelection x
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></a></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679684012"><span id="local-6989586621679684014"><span class="annot"><span class="annottext">Value -&gt; Parser [InitChainSelection]
+Value -&gt; Parser InitChainSelection
+(Value -&gt; Parser InitChainSelection)
+-&gt; (Value -&gt; Parser [InitChainSelection])
+-&gt; FromJSON InitChainSelection
+forall a.
+(Value -&gt; Parser a) -&gt; (Value -&gt; Parser [a]) -&gt; FromJSON a
+parseJSONList :: Value -&gt; Parser [InitChainSelection]
+$cparseJSONList :: Value -&gt; Parser [InitChainSelection]
+parseJSON :: Value -&gt; Parser InitChainSelection
+$cparseJSON :: Value -&gt; Parser InitChainSelection
+</span><a href="#local-6989586621679684012"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">FromJSON</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679684004"><span id="local-6989586621679684006"><span id="local-6989586621679684008"><span id="local-6989586621679684010"><span class="annot"><span class="annottext">[InitChainSelection] -&gt; Encoding
+[InitChainSelection] -&gt; Value
+InitChainSelection -&gt; Encoding
+InitChainSelection -&gt; Value
+(InitChainSelection -&gt; Value)
+-&gt; (InitChainSelection -&gt; Encoding)
+-&gt; ([InitChainSelection] -&gt; Value)
+-&gt; ([InitChainSelection] -&gt; Encoding)
+-&gt; ToJSON InitChainSelection
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; ToJSON a
+toEncodingList :: [InitChainSelection] -&gt; Encoding
+$ctoEncodingList :: [InitChainSelection] -&gt; Encoding
+toJSONList :: [InitChainSelection] -&gt; Value
+$ctoJSONList :: [InitChainSelection] -&gt; Value
+toEncoding :: InitChainSelection -&gt; Encoding
+$ctoEncoding :: InitChainSelection -&gt; Encoding
+toJSON :: InitChainSelection -&gt; Value
+$ctoJSON :: InitChainSelection -&gt; Value
+</span><a href="#local-6989586621679684004"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></a></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-70"></span><span>
+</span><span id="line-71"></span><span class="hs-keyword">type</span><span> </span><span id="SyncPercentage"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#SyncPercentage"><span class="hs-identifier hs-var">SyncPercentage</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">Double</span></a></span><span>
+</span><span id="line-72"></span><span>
+</span><span id="line-73"></span><span id="local-6989586621679684002"><span id="local-6989586621679684003"></span></span><span class="hs-keyword">data</span><span> </span><span id="AddedToCurrentChain"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#AddedToCurrentChain"><span class="hs-identifier hs-var">AddedToCurrentChain</span></a></span></span><span>
+</span><span id="line-74"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="AddedToCurrentChain"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#AddedToCurrentChain"><span class="hs-identifier hs-var">AddedToCurrentChain</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">EpochNo</span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#SyncPercentage"><span class="hs-identifier hs-type">SyncPercentage</span></a></span><span>
+</span><span id="line-75"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x. AddedToCurrentChain -&gt; Rep AddedToCurrentChain x)
+-&gt; (forall x. Rep AddedToCurrentChain x -&gt; AddedToCurrentChain)
+-&gt; Generic AddedToCurrentChain
+forall x. Rep AddedToCurrentChain x -&gt; AddedToCurrentChain
+forall x. AddedToCurrentChain -&gt; Rep AddedToCurrentChain x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep AddedToCurrentChain x -&gt; AddedToCurrentChain
+$cfrom :: forall x. AddedToCurrentChain -&gt; Rep AddedToCurrentChain x
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></a></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679683995"><span id="local-6989586621679683997"><span class="annot"><span class="annottext">Value -&gt; Parser [AddedToCurrentChain]
+Value -&gt; Parser AddedToCurrentChain
+(Value -&gt; Parser AddedToCurrentChain)
+-&gt; (Value -&gt; Parser [AddedToCurrentChain])
+-&gt; FromJSON AddedToCurrentChain
+forall a.
+(Value -&gt; Parser a) -&gt; (Value -&gt; Parser [a]) -&gt; FromJSON a
+parseJSONList :: Value -&gt; Parser [AddedToCurrentChain]
+$cparseJSONList :: Value -&gt; Parser [AddedToCurrentChain]
+parseJSON :: Value -&gt; Parser AddedToCurrentChain
+$cparseJSON :: Value -&gt; Parser AddedToCurrentChain
+</span><a href="#local-6989586621679683995"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">FromJSON</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679683987"><span id="local-6989586621679683989"><span id="local-6989586621679683991"><span id="local-6989586621679683993"><span class="annot"><span class="annottext">[AddedToCurrentChain] -&gt; Encoding
+[AddedToCurrentChain] -&gt; Value
+AddedToCurrentChain -&gt; Encoding
+AddedToCurrentChain -&gt; Value
+(AddedToCurrentChain -&gt; Value)
+-&gt; (AddedToCurrentChain -&gt; Encoding)
+-&gt; ([AddedToCurrentChain] -&gt; Value)
+-&gt; ([AddedToCurrentChain] -&gt; Encoding)
+-&gt; ToJSON AddedToCurrentChain
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; ToJSON a
+toEncodingList :: [AddedToCurrentChain] -&gt; Encoding
+$ctoEncodingList :: [AddedToCurrentChain] -&gt; Encoding
+toJSONList :: [AddedToCurrentChain] -&gt; Value
+$ctoJSONList :: [AddedToCurrentChain] -&gt; Value
+toEncoding :: AddedToCurrentChain -&gt; Encoding
+$ctoEncoding :: AddedToCurrentChain -&gt; Encoding
+toJSON :: AddedToCurrentChain -&gt; Value
+$ctoJSON :: AddedToCurrentChain -&gt; Value
+</span><a href="#local-6989586621679683987"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></a></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Generic</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NPV.NodeToClientVersion</span></span><span>
+</span><span id="line-78"></span><span class="hs-keyword">deriving</span><span> </span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Generic</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NPV.NodeToNodeVersion</span></span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679683979"><span id="local-6989586621679683981"><span class="annot"><span class="hs-identifier hs-type">FromJSON</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NPV.NodeToClientVersion</span></span></span></span><span>
+</span><span id="line-81"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679683975"><span id="local-6989586621679683977"><span class="annot"><span class="hs-identifier hs-type">FromJSON</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">NPV.NodeToNodeVersion</span></span></span></span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span id="local-6989586621679683973"><span id="local-6989586621679683974"></span></span><span class="hs-keyword">data</span><span> </span><span id="StartupState"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#StartupState"><span class="hs-identifier hs-var">StartupState</span></a></span></span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="StartupSocketConfigError"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#StartupSocketConfigError"><span class="hs-identifier hs-var">StartupSocketConfigError</span></a></span></span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier hs-type">Text</span></a></span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="StartupDBValidation"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#StartupDBValidation"><span class="hs-identifier hs-var">StartupDBValidation</span></a></span></span><span>
+</span><span id="line-86"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="NetworkConfigUpdate"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NetworkConfigUpdate"><span class="hs-identifier hs-var">NetworkConfigUpdate</span></a></span></span><span>
+</span><span id="line-87"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="NetworkConfigUpdateError"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NetworkConfigUpdateError"><span class="hs-identifier hs-var">NetworkConfigUpdateError</span></a></span></span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier hs-type">Text</span></a></span><span>
+</span><span id="line-88"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="P2PWarning"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#P2PWarning"><span class="hs-identifier hs-var">P2PWarning</span></a></span></span><span>
+</span><span id="line-89"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="P2PWarningDevelopementNetworkProtocols"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#P2PWarningDevelopementNetworkProtocols"><span class="hs-identifier hs-var">P2PWarningDevelopementNetworkProtocols</span></a></span></span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="WarningDevelopmentNetworkProtocols"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#WarningDevelopmentNetworkProtocols"><span class="hs-identifier hs-var">WarningDevelopmentNetworkProtocols</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">NPV.NodeToNodeVersion</span></span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">NPV.NodeToClientVersion</span></span><span class="hs-special">]</span><span>
+</span><span id="line-91"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x. StartupState -&gt; Rep StartupState x)
+-&gt; (forall x. Rep StartupState x -&gt; StartupState)
+-&gt; Generic StartupState
+forall x. Rep StartupState x -&gt; StartupState
+forall x. StartupState -&gt; Rep StartupState x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep StartupState x -&gt; StartupState
+$cfrom :: forall x. StartupState -&gt; Rep StartupState x
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></a></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679683960"><span id="local-6989586621679683962"><span class="annot"><span class="annottext">Value -&gt; Parser [StartupState]
+Value -&gt; Parser StartupState
+(Value -&gt; Parser StartupState)
+-&gt; (Value -&gt; Parser [StartupState]) -&gt; FromJSON StartupState
+forall a.
+(Value -&gt; Parser a) -&gt; (Value -&gt; Parser [a]) -&gt; FromJSON a
+parseJSONList :: Value -&gt; Parser [StartupState]
+$cparseJSONList :: Value -&gt; Parser [StartupState]
+parseJSON :: Value -&gt; Parser StartupState
+$cparseJSON :: Value -&gt; Parser StartupState
+</span><a href="#local-6989586621679683960"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">FromJSON</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679683952"><span id="local-6989586621679683954"><span id="local-6989586621679683956"><span id="local-6989586621679683958"><span class="annot"><span class="annottext">[StartupState] -&gt; Encoding
+[StartupState] -&gt; Value
+StartupState -&gt; Encoding
+StartupState -&gt; Value
+(StartupState -&gt; Value)
+-&gt; (StartupState -&gt; Encoding)
+-&gt; ([StartupState] -&gt; Value)
+-&gt; ([StartupState] -&gt; Encoding)
+-&gt; ToJSON StartupState
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; ToJSON a
+toEncodingList :: [StartupState] -&gt; Encoding
+$ctoEncodingList :: [StartupState] -&gt; Encoding
+toJSONList :: [StartupState] -&gt; Value
+$ctoJSONList :: [StartupState] -&gt; Value
+toEncoding :: StartupState -&gt; Encoding
+$ctoEncoding :: StartupState -&gt; Encoding
+toJSON :: StartupState -&gt; Value
+$ctoJSON :: StartupState -&gt; Value
+</span><a href="#local-6989586621679683952"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></a></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>
+</span><span id="line-93"></span><span class="hs-comment">-- | The representation of the current state of node.</span><span>
+</span><span id="line-94"></span><span class="hs-comment">--   All node states prior to tracing system going online are effectively invisible.</span><span>
+</span><span id="line-95"></span><span id="local-6989586621679683950"><span id="local-6989586621679683951"></span></span><span class="hs-keyword">data</span><span> </span><span id="NodeState"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeState"><span class="hs-identifier hs-var">NodeState</span></a></span></span><span>
+</span><span id="line-96"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="NodeTracingOnlineConfiguring"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeTracingOnlineConfiguring"><span class="hs-identifier hs-var">NodeTracingOnlineConfiguring</span></a></span></span><span>
+</span><span id="line-97"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="NodeOpeningDbs"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeOpeningDbs"><span class="hs-identifier hs-var">NodeOpeningDbs</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#OpeningDbs"><span class="hs-identifier hs-type">OpeningDbs</span></a></span><span>
+</span><span id="line-98"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="NodeReplays"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeReplays"><span class="hs-identifier hs-var">NodeReplays</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#Replays"><span class="hs-identifier hs-type">Replays</span></a></span><span>
+</span><span id="line-99"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="NodeInitChainSelection"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeInitChainSelection"><span class="hs-identifier hs-var">NodeInitChainSelection</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#InitChainSelection"><span class="hs-identifier hs-type">InitChainSelection</span></a></span><span>
+</span><span id="line-100"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="NodeKernelOnline"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeKernelOnline"><span class="hs-identifier hs-var">NodeKernelOnline</span></a></span></span><span>
+</span><span id="line-101"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="NodeAddBlock"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeAddBlock"><span class="hs-identifier hs-var">NodeAddBlock</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#AddedToCurrentChain"><span class="hs-identifier hs-type">AddedToCurrentChain</span></a></span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="NodeStartup"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeStartup"><span class="hs-identifier hs-var">NodeStartup</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#StartupState"><span class="hs-identifier hs-type">StartupState</span></a></span><span>
+</span><span id="line-103"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="NodeShutdown"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeShutdown"><span class="hs-identifier hs-var">NodeShutdown</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Node.Handlers.Shutdown.html#ShutdownTrace"><span class="hs-identifier hs-type">ShutdownTrace</span></a></span><span>
+</span><span id="line-104"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(forall x. NodeState -&gt; Rep NodeState x)
+-&gt; (forall x. Rep NodeState x -&gt; NodeState) -&gt; Generic NodeState
+forall x. Rep NodeState x -&gt; NodeState
+forall x. NodeState -&gt; Rep NodeState x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cto :: forall x. Rep NodeState x -&gt; NodeState
+$cfrom :: forall x. NodeState -&gt; Rep NodeState x
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var hs-var hs-var hs-var">Generic</span></a></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679683936"><span id="local-6989586621679683938"><span class="annot"><span class="annottext">Value -&gt; Parser [NodeState]
+Value -&gt; Parser NodeState
+(Value -&gt; Parser NodeState)
+-&gt; (Value -&gt; Parser [NodeState]) -&gt; FromJSON NodeState
+forall a.
+(Value -&gt; Parser a) -&gt; (Value -&gt; Parser [a]) -&gt; FromJSON a
+parseJSONList :: Value -&gt; Parser [NodeState]
+$cparseJSONList :: Value -&gt; Parser [NodeState]
+parseJSON :: Value -&gt; Parser NodeState
+$cparseJSON :: Value -&gt; Parser NodeState
+</span><a href="#local-6989586621679683936"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">FromJSON</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679683928"><span id="local-6989586621679683930"><span id="local-6989586621679683932"><span id="local-6989586621679683934"><span class="annot"><span class="annottext">[NodeState] -&gt; Encoding
+[NodeState] -&gt; Value
+NodeState -&gt; Encoding
+NodeState -&gt; Value
+(NodeState -&gt; Value)
+-&gt; (NodeState -&gt; Encoding)
+-&gt; ([NodeState] -&gt; Value)
+-&gt; ([NodeState] -&gt; Encoding)
+-&gt; ToJSON NodeState
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; ToJSON a
+toEncodingList :: [NodeState] -&gt; Encoding
+$ctoEncodingList :: [NodeState] -&gt; Encoding
+toJSONList :: [NodeState] -&gt; Value
+$ctoJSONList :: [NodeState] -&gt; Value
+toEncoding :: NodeState -&gt; Encoding
+$ctoEncoding :: NodeState -&gt; Encoding
+toJSON :: NodeState -&gt; Value
+$ctoJSON :: NodeState -&gt; Value
+</span><a href="#local-6989586621679683928"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></a></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-105"></span><span>
+</span><span id="line-106"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679683923"><span id="local-6989586621679683925"><span class="annot"><span class="hs-identifier hs-type">LogFormatting</span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeState"><span class="hs-identifier hs-type">NodeState</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-107"></span><span>  </span><span id="local-6989586621679683921"><span class="annot"><span class="annottext">forMachine :: DetailLevel -&gt; NodeState -&gt; Object
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">forMachine</span></span></span><span> </span><span class="annot"><span class="annottext">DetailLevel
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-108"></span><span>    </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeOpeningDbs"><span class="hs-identifier hs-type">NodeOpeningDbs</span></a></span><span> </span><span id="local-6989586621679683919"><span class="annot"><span class="annottext">OpeningDbs
+</span><a href="#local-6989586621679683919"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Object] -&gt; Object
+forall a. Monoid a =&gt; [a] -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">mconcat</span></a></span><span>
+</span><span id="line-109"></span><span>      </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;openingDb&quot;</span></span><span> </span><span class="annot"><span class="annottext">Key -&gt; Value -&gt; Object
+forall kv v. (KeyValue kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">OpeningDbs -&gt; Value
+forall a. ToJSON a =&gt; a -&gt; Value
+</span><span class="hs-identifier hs-var">toJSON</span></span><span> </span><span class="annot"><span class="annottext">OpeningDbs
+</span><a href="#local-6989586621679683919"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-110"></span><span>    </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeReplays"><span class="hs-identifier hs-type">NodeReplays</span></a></span><span> </span><span id="local-6989586621679683916"><span class="annot"><span class="annottext">Replays
+</span><a href="#local-6989586621679683916"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Object] -&gt; Object
+forall a. Monoid a =&gt; [a] -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">mconcat</span></a></span><span>
+</span><span id="line-111"></span><span>      </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;replays&quot;</span></span><span>   </span><span class="annot"><span class="annottext">Key -&gt; Value -&gt; Object
+forall kv v. (KeyValue kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Replays -&gt; Value
+forall a. ToJSON a =&gt; a -&gt; Value
+</span><span class="hs-identifier hs-var">toJSON</span></span><span> </span><span class="annot"><span class="annottext">Replays
+</span><a href="#local-6989586621679683916"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-112"></span><span>    </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeInitChainSelection"><span class="hs-identifier hs-type">NodeInitChainSelection</span></a></span><span> </span><span id="local-6989586621679683915"><span class="annot"><span class="annottext">InitChainSelection
+</span><a href="#local-6989586621679683915"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Object] -&gt; Object
+forall a. Monoid a =&gt; [a] -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">mconcat</span></a></span><span>
+</span><span id="line-113"></span><span>      </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;chainSel&quot;</span></span><span>  </span><span class="annot"><span class="annottext">Key -&gt; Value -&gt; Object
+forall kv v. (KeyValue kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">InitChainSelection -&gt; Value
+forall a. ToJSON a =&gt; a -&gt; Value
+</span><span class="hs-identifier hs-var">toJSON</span></span><span> </span><span class="annot"><span class="annottext">InitChainSelection
+</span><a href="#local-6989586621679683915"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-114"></span><span>    </span><span class="annot"><span class="annottext">NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeKernelOnline"><span class="hs-identifier hs-var">NodeKernelOnline</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Object] -&gt; Object
+forall a. Monoid a =&gt; [a] -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">mconcat</span></a></span><span>
+</span><span id="line-115"></span><span>      </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-116"></span><span>    </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeAddBlock"><span class="hs-identifier hs-type">NodeAddBlock</span></a></span><span> </span><span id="local-6989586621679683914"><span class="annot"><span class="annottext">AddedToCurrentChain
+</span><a href="#local-6989586621679683914"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Object] -&gt; Object
+forall a. Monoid a =&gt; [a] -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">mconcat</span></a></span><span>
+</span><span id="line-117"></span><span>      </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;addBlock&quot;</span></span><span>  </span><span class="annot"><span class="annottext">Key -&gt; Value -&gt; Object
+forall kv v. (KeyValue kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">AddedToCurrentChain -&gt; Value
+forall a. ToJSON a =&gt; a -&gt; Value
+</span><span class="hs-identifier hs-var">toJSON</span></span><span> </span><span class="annot"><span class="annottext">AddedToCurrentChain
+</span><a href="#local-6989586621679683914"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-118"></span><span>    </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeStartup"><span class="hs-identifier hs-type">NodeStartup</span></a></span><span> </span><span id="local-6989586621679683913"><span class="annot"><span class="annottext">StartupState
+</span><a href="#local-6989586621679683913"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Object] -&gt; Object
+forall a. Monoid a =&gt; [a] -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">mconcat</span></a></span><span>
+</span><span id="line-119"></span><span>      </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;startup&quot;</span></span><span>   </span><span class="annot"><span class="annottext">Key -&gt; Value -&gt; Object
+forall kv v. (KeyValue kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">StartupState -&gt; Value
+forall a. ToJSON a =&gt; a -&gt; Value
+</span><span class="hs-identifier hs-var">toJSON</span></span><span> </span><span class="annot"><span class="annottext">StartupState
+</span><a href="#local-6989586621679683913"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-120"></span><span>    </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeShutdown"><span class="hs-identifier hs-type">NodeShutdown</span></a></span><span> </span><span id="local-6989586621679683912"><span class="annot"><span class="annottext">ShutdownTrace
+</span><a href="#local-6989586621679683912"><span class="hs-identifier hs-var">x</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Object] -&gt; Object
+forall a. Monoid a =&gt; [a] -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">mconcat</span></a></span><span>
+</span><span id="line-121"></span><span>      </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;shutdown&quot;</span></span><span>  </span><span class="annot"><span class="annottext">Key -&gt; Value -&gt; Object
+forall kv v. (KeyValue kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">ShutdownTrace -&gt; Value
+forall a. ToJSON a =&gt; a -&gt; Value
+</span><span class="hs-identifier hs-var">toJSON</span></span><span> </span><span class="annot"><span class="annottext">ShutdownTrace
+</span><a href="#local-6989586621679683912"><span class="hs-identifier hs-var">x</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-122"></span><span>    </span><span class="annot"><span class="annottext">NodeState
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Object
+forall a. Monoid a =&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">mempty</span></a></span><span>
+</span><span id="line-123"></span><span>
+</span><span id="line-124"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679683903"><span id="local-6989586621679683906"><span id="local-6989586621679683908"><span class="annot"><span class="hs-identifier hs-type">MetaTrace</span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeState"><span class="hs-identifier hs-type">NodeState</span></a></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-125"></span><span>  </span><span id="local-6989586621679683900"><span class="annot"><span class="annottext">namespaceFor :: NodeState -&gt; Namespace NodeState
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">namespaceFor</span></span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeTracingOnlineConfiguring"><span class="hs-identifier hs-type">NodeTracingOnlineConfiguring</span></a></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span>  </span><span class="hs-glyph">=</span><span>
+</span><span id="line-126"></span><span>    </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeTracingOnlineConfiguring&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-127"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">namespaceFor</span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeOpeningDbs"><span class="hs-identifier hs-type">NodeOpeningDbs</span></a></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span>  </span><span class="hs-glyph">=</span><span>
+</span><span id="line-128"></span><span>    </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;OpeningDbs&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-129"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">namespaceFor</span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeReplays"><span class="hs-identifier hs-type">NodeReplays</span></a></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span>  </span><span class="hs-glyph">=</span><span>
+</span><span id="line-130"></span><span>    </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeReplays&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-131"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">namespaceFor</span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeInitChainSelection"><span class="hs-identifier hs-type">NodeInitChainSelection</span></a></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span>  </span><span class="hs-glyph">=</span><span>
+</span><span id="line-132"></span><span>    </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeInitChainSelection&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-133"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">namespaceFor</span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeKernelOnline"><span class="hs-identifier hs-type">NodeKernelOnline</span></a></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span>  </span><span class="hs-glyph">=</span><span>
+</span><span id="line-134"></span><span>    </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeKernelOnline&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-135"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">namespaceFor</span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeAddBlock"><span class="hs-identifier hs-type">NodeAddBlock</span></a></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span>  </span><span class="hs-glyph">=</span><span>
+</span><span id="line-136"></span><span>    </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeAddBlock&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-137"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">namespaceFor</span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeStartup"><span class="hs-identifier hs-type">NodeStartup</span></a></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span>  </span><span class="hs-glyph">=</span><span>
+</span><span id="line-138"></span><span>    </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeStartup&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-139"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">namespaceFor</span></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeShutdown"><span class="hs-identifier hs-type">NodeShutdown</span></a></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span>  </span><span class="hs-glyph">=</span><span>
+</span><span id="line-140"></span><span>    </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeShutdown&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-141"></span><span>
+</span><span id="line-142"></span><span>  </span><span id="local-6989586621679683897"><span class="annot"><span class="annottext">severityFor :: Namespace NodeState -&gt; Maybe NodeState -&gt; Maybe SeverityS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">severityFor</span></span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeTracingOnlineConfiguring&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe NodeState
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-143"></span><span>    </span><span class="annot"><span class="annottext">SeverityS -&gt; Maybe SeverityS
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">SeverityS
+</span><span class="hs-identifier hs-var">Info</span></span><span>
+</span><span id="line-144"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">severityFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;OpeningDbs&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe NodeState
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-145"></span><span>    </span><span class="annot"><span class="annottext">SeverityS -&gt; Maybe SeverityS
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">SeverityS
+</span><span class="hs-identifier hs-var">Info</span></span><span>
+</span><span id="line-146"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">severityFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeReplays&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe NodeState
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-147"></span><span>    </span><span class="annot"><span class="annottext">SeverityS -&gt; Maybe SeverityS
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">SeverityS
+</span><span class="hs-identifier hs-var">Notice</span></span><span>
+</span><span id="line-148"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">severityFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeInitChainSelection&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe NodeState
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-149"></span><span>    </span><span class="annot"><span class="annottext">SeverityS -&gt; Maybe SeverityS
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">SeverityS
+</span><span class="hs-identifier hs-var">Notice</span></span><span>
+</span><span id="line-150"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">severityFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeKernelOnline&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe NodeState
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-151"></span><span>    </span><span class="annot"><span class="annottext">SeverityS -&gt; Maybe SeverityS
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">SeverityS
+</span><span class="hs-identifier hs-var">Info</span></span><span>
+</span><span id="line-152"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">severityFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeAddBlock&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe NodeState
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-153"></span><span>    </span><span class="annot"><span class="annottext">SeverityS -&gt; Maybe SeverityS
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">SeverityS
+</span><span class="hs-identifier hs-var">Notice</span></span><span>
+</span><span id="line-154"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">severityFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeStartup&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe NodeState
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-155"></span><span>    </span><span class="annot"><span class="annottext">SeverityS -&gt; Maybe SeverityS
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">SeverityS
+</span><span class="hs-identifier hs-var">Info</span></span><span>
+</span><span id="line-156"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">severityFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeShutdown&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe NodeState
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-157"></span><span>    </span><span class="annot"><span class="annottext">SeverityS -&gt; Maybe SeverityS
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span> </span><span class="annot"><span class="annottext">SeverityS
+</span><span class="hs-identifier hs-var">Warning</span></span><span>
+</span><span id="line-158"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">severityFor</span></span><span> </span><span id="local-6989586621679683892"><span class="annot"><span class="annottext">Namespace NodeState
+</span><a href="#local-6989586621679683892"><span class="hs-identifier hs-var">_ns</span></a></span></span><span> </span><span class="annot"><span class="annottext">Maybe NodeState
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-159"></span><span>    </span><span class="annot"><span class="annottext">Maybe SeverityS
+forall a. Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span>
+</span><span id="line-160"></span><span>
+</span><span id="line-161"></span><span>  </span><span id="local-6989586621679683891"><span class="annot"><span class="annottext">documentFor :: Namespace NodeState -&gt; Maybe Text
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">documentFor</span></span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeTracingOnlineConfiguring&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe Text
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span>
+</span><span id="line-162"></span><span>    </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Tracing system came online, system configuring now&quot;</span></span><span>
+</span><span id="line-163"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">documentFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;OpeningDbs&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe Text
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span>
+</span><span id="line-164"></span><span>    </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;ChainDB components being opened&quot;</span></span><span>
+</span><span id="line-165"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">documentFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeReplays&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe Text
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span>
+</span><span id="line-166"></span><span>    </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Replaying chain&quot;</span></span><span>
+</span><span id="line-167"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">documentFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeInitChainSelection&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe Text
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span>
+</span><span id="line-168"></span><span>    </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Performing initial chain selection&quot;</span></span><span>
+</span><span id="line-169"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">documentFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeKernelOnline&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe Text
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span>
+</span><span id="line-170"></span><span>    </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;&quot;</span></span><span>
+</span><span id="line-171"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">documentFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeAddBlock&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe Text
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span>
+</span><span id="line-172"></span><span>   </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Applying block&quot;</span></span><span>
+</span><span id="line-173"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">documentFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeStartup&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe Text
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span>
+</span><span id="line-174"></span><span>    </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Node startup&quot;</span></span><span>
+</span><span id="line-175"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">documentFor</span></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Namespace</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeShutdown&quot;</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe Text
+forall a. a -&gt; Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Just</span></a></span><span>
+</span><span id="line-176"></span><span>    </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Node shutting down&quot;</span></span><span>
+</span><span id="line-177"></span><span>  </span><span class="annot"><span class="hs-identifier hs-var">documentFor</span></span><span> </span><span id="local-6989586621679683889"><span class="annot"><span class="annottext">Namespace NodeState
+</span><a href="#local-6989586621679683889"><span class="hs-identifier hs-var">_ns</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe Text
+forall a. Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span>
+</span><span id="line-178"></span><span>
+</span><span id="line-179"></span><span>  </span><span id="local-6989586621679683888"><span class="annot"><span class="annottext">allNamespaces :: [Namespace NodeState]
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">allNamespaces</span></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span>
+</span><span id="line-180"></span><span>          </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeTracingOnlineConfiguring&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-181"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;OpeningDbs&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-182"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeReplays&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-183"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeInitChainSelection&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-184"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeKernelOnline&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-185"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeAddBlock&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-186"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeStartup&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-187"></span><span>        </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; [Text] -&gt; Namespace NodeState
+forall a. [Text] -&gt; [Text] -&gt; Namespace a
+</span><span class="hs-identifier hs-var">Namespace</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;NodeShutdown&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-188"></span><span>        </span><span class="hs-special">]</span><span>
+</span><span id="line-189"></span><span>
+</span><span id="line-190"></span><span>
+</span><span id="line-191"></span><span id="local-6989586621679683886"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#traceNodeStateChainDB"><span class="hs-identifier hs-type">traceNodeStateChainDB</span></a></span><span>
+</span><span id="line-192"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Node.Protocol.Types.html#SomeConsensusProtocol"><span class="hs-identifier hs-type">SomeConsensusProtocol</span></a></span><span>
+</span><span id="line-193"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Trace</span></span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeState"><span class="hs-identifier hs-type">NodeState</span></a></span><span>
+</span><span id="line-194"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ChainDB.TraceEvent</span></span><span> </span><span class="annot"><a href="#local-6989586621679683886"><span class="hs-identifier hs-type">blk</span></a></span><span>
+</span><span id="line-195"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-196"></span><span id="traceNodeStateChainDB"><span class="annot"><span class="annottext">traceNodeStateChainDB :: SomeConsensusProtocol
+-&gt; Trace IO NodeState -&gt; TraceEvent blk -&gt; IO ()
+</span><a href="Cardano.Node.Tracing.StateRep.html#traceNodeStateChainDB"><span class="hs-identifier hs-var hs-var">traceNodeStateChainDB</span></a></span></span><span> </span><span id="local-6989586621679683885"><span class="annot"><span class="annottext">SomeConsensusProtocol
+</span><a href="#local-6989586621679683885"><span class="hs-identifier hs-var">_scp</span></a></span></span><span> </span><span id="local-6989586621679683884"><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span></span><span> </span><span id="local-6989586621679683883"><span class="annot"><span class="annottext">TraceEvent blk
+</span><a href="#local-6989586621679683883"><span class="hs-identifier hs-var">ev</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-197"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TraceEvent blk
+</span><a href="#local-6989586621679683883"><span class="hs-identifier hs-var">ev</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-198"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">ChainDB.TraceOpenEvent</span></span><span> </span><span id="local-6989586621679683881"><span class="annot"><span class="annottext">TraceOpenEvent blk
+</span><a href="#local-6989586621679683881"><span class="hs-identifier hs-var">ev'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-199"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TraceOpenEvent blk
+</span><a href="#local-6989586621679683881"><span class="hs-identifier hs-var">ev'</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-200"></span><span>        </span><span class="annot"><span class="annottext">TraceOpenEvent blk
+</span><span class="hs-identifier hs-var">ChainDB.StartedOpeningImmutableDB</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-201"></span><span>          </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">OpeningDbs -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeOpeningDbs"><span class="hs-identifier hs-var">NodeOpeningDbs</span></a></span><span> </span><span class="annot"><span class="annottext">OpeningDbs
+</span><a href="Cardano.Node.Tracing.StateRep.html#StartedOpeningImmutableDB"><span class="hs-identifier hs-var">StartedOpeningImmutableDB</span></a></span><span>
+</span><span id="line-202"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">ChainDB.OpenedImmutableDB</span></span><span> </span><span id="local-6989586621679683877"><span class="annot"><span class="annottext">Point blk
+</span><a href="#local-6989586621679683877"><span class="hs-identifier hs-var">p</span></a></span></span><span> </span><span id="local-6989586621679683876"><span class="annot"><span class="annottext">ChunkNo
+</span><a href="#local-6989586621679683876"><span class="hs-identifier hs-var">chunk</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-203"></span><span>          </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">OpeningDbs -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeOpeningDbs"><span class="hs-identifier hs-var">NodeOpeningDbs</span></a></span><span> </span><span class="annot"><span class="annottext">(OpeningDbs -&gt; NodeState) -&gt; OpeningDbs -&gt; NodeState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">WithOrigin SlotNo -&gt; ChunkNo -&gt; OpeningDbs
+</span><a href="Cardano.Node.Tracing.StateRep.html#OpenedImmutableDB"><span class="hs-identifier hs-var">OpenedImmutableDB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point blk -&gt; WithOrigin SlotNo
+forall block. Point block -&gt; WithOrigin SlotNo
+</span><span class="hs-identifier hs-var">pointSlot</span></span><span> </span><span class="annot"><span class="annottext">Point blk
+</span><a href="#local-6989586621679683877"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">ChunkNo
+</span><a href="#local-6989586621679683876"><span class="hs-identifier hs-var">chunk</span></a></span><span>
+</span><span id="line-204"></span><span>        </span><span class="annot"><span class="annottext">TraceOpenEvent blk
+</span><span class="hs-identifier hs-var">ChainDB.StartedOpeningVolatileDB</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-205"></span><span>          </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">OpeningDbs -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeOpeningDbs"><span class="hs-identifier hs-var">NodeOpeningDbs</span></a></span><span> </span><span class="annot"><span class="annottext">OpeningDbs
+</span><a href="Cardano.Node.Tracing.StateRep.html#StartedOpeningVolatileDB"><span class="hs-identifier hs-var">StartedOpeningVolatileDB</span></a></span><span>
+</span><span id="line-206"></span><span>        </span><span class="annot"><span class="annottext">TraceOpenEvent blk
+</span><span class="hs-identifier hs-var">ChainDB.OpenedVolatileDB</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-207"></span><span>          </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">OpeningDbs -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeOpeningDbs"><span class="hs-identifier hs-var">NodeOpeningDbs</span></a></span><span> </span><span class="annot"><span class="annottext">OpeningDbs
+</span><a href="Cardano.Node.Tracing.StateRep.html#OpenedVolatileDB"><span class="hs-identifier hs-var">OpenedVolatileDB</span></a></span><span>
+</span><span id="line-208"></span><span>        </span><span class="annot"><span class="annottext">TraceOpenEvent blk
+</span><span class="hs-identifier hs-var">ChainDB.StartedOpeningLgrDB</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-209"></span><span>          </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">OpeningDbs -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeOpeningDbs"><span class="hs-identifier hs-var">NodeOpeningDbs</span></a></span><span> </span><span class="annot"><span class="annottext">OpeningDbs
+</span><a href="Cardano.Node.Tracing.StateRep.html#StartedOpeningLgrDB"><span class="hs-identifier hs-var">StartedOpeningLgrDB</span></a></span><span>
+</span><span id="line-210"></span><span>        </span><span class="annot"><span class="annottext">TraceOpenEvent blk
+</span><span class="hs-identifier hs-var">ChainDB.OpenedLgrDB</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-211"></span><span>          </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">OpeningDbs -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeOpeningDbs"><span class="hs-identifier hs-var">NodeOpeningDbs</span></a></span><span> </span><span class="annot"><span class="annottext">OpeningDbs
+</span><a href="Cardano.Node.Tracing.StateRep.html#OpenedLgrDB"><span class="hs-identifier hs-var">OpenedLgrDB</span></a></span><span>
+</span><span id="line-212"></span><span>        </span><span class="annot"><span class="annottext">TraceOpenEvent blk
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-213"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">ChainDB.TraceLedgerReplayEvent</span></span><span> </span><span id="local-6989586621679683870"><span class="annot"><span class="annottext">TraceReplayEvent blk
+</span><a href="#local-6989586621679683870"><span class="hs-identifier hs-var">ev'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-214"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TraceReplayEvent blk
+</span><a href="#local-6989586621679683870"><span class="hs-identifier hs-var">ev'</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-215"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">LgrDb.ReplayFromGenesis</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">LgrDb.ReplayGoal</span></span><span> </span><span id="local-6989586621679683867"><span class="annot"><span class="annottext">Point blk
+</span><a href="#local-6989586621679683867"><span class="hs-identifier hs-var">p</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-216"></span><span>          </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Replays -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeReplays"><span class="hs-identifier hs-var">NodeReplays</span></a></span><span> </span><span class="annot"><span class="annottext">(Replays -&gt; NodeState) -&gt; Replays -&gt; NodeState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">WithOrigin SlotNo -&gt; Replays
+</span><a href="Cardano.Node.Tracing.StateRep.html#ReplayFromGenesis"><span class="hs-identifier hs-var">ReplayFromGenesis</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point blk -&gt; WithOrigin SlotNo
+forall block. Point block -&gt; WithOrigin SlotNo
+</span><span class="hs-identifier hs-var">pointSlot</span></span><span> </span><span class="annot"><span class="annottext">Point blk
+</span><a href="#local-6989586621679683867"><span class="hs-identifier hs-var">p</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-217"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">LgrDb.ReplayFromSnapshot</span></span><span> </span><span class="annot"><span class="annottext">DiskSnapshot
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">RP.RealPoint</span></span><span> </span><span id="local-6989586621679683864"><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679683864"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="annot"><span class="annottext">HeaderHash blk
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">LgrDb.ReplayStart</span></span><span> </span><span id="local-6989586621679683862"><span class="annot"><span class="annottext">Point blk
+</span><a href="#local-6989586621679683862"><span class="hs-identifier hs-var">rs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">LgrDb.ReplayGoal</span></span><span> </span><span id="local-6989586621679683861"><span class="annot"><span class="annottext">Point blk
+</span><a href="#local-6989586621679683861"><span class="hs-identifier hs-var">rp</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-218"></span><span>          </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Replays -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeReplays"><span class="hs-identifier hs-var">NodeReplays</span></a></span><span> </span><span class="annot"><span class="annottext">(Replays -&gt; NodeState) -&gt; Replays -&gt; NodeState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNo -&gt; WithOrigin SlotNo -&gt; WithOrigin SlotNo -&gt; Replays
+</span><a href="Cardano.Node.Tracing.StateRep.html#ReplayFromSnapshot"><span class="hs-identifier hs-var">ReplayFromSnapshot</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679683864"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point blk -&gt; WithOrigin SlotNo
+forall block. Point block -&gt; WithOrigin SlotNo
+</span><span class="hs-identifier hs-var">pointSlot</span></span><span> </span><span class="annot"><span class="annottext">Point blk
+</span><a href="#local-6989586621679683862"><span class="hs-identifier hs-var">rs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point blk -&gt; WithOrigin SlotNo
+forall block. Point block -&gt; WithOrigin SlotNo
+</span><span class="hs-identifier hs-var">pointSlot</span></span><span> </span><span class="annot"><span class="annottext">Point blk
+</span><a href="#local-6989586621679683861"><span class="hs-identifier hs-var">rp</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-219"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">LgrDb.ReplayedBlock</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">RP.RealPoint</span></span><span> </span><span id="local-6989586621679683859"><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679683859"><span class="hs-identifier hs-var">s</span></a></span></span><span> </span><span class="annot"><span class="annottext">HeaderHash blk
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[LedgerEvent blk]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">LgrDb.ReplayStart</span></span><span> </span><span id="local-6989586621679683858"><span class="annot"><span class="annottext">Point blk
+</span><a href="#local-6989586621679683858"><span class="hs-identifier hs-var">rs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">LgrDb.ReplayGoal</span></span><span> </span><span id="local-6989586621679683857"><span class="annot"><span class="annottext">Point blk
+</span><a href="#local-6989586621679683857"><span class="hs-identifier hs-var">rp</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-220"></span><span>          </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Replays -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeReplays"><span class="hs-identifier hs-var">NodeReplays</span></a></span><span> </span><span class="annot"><span class="annottext">(Replays -&gt; NodeState) -&gt; Replays -&gt; NodeState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNo -&gt; WithOrigin SlotNo -&gt; WithOrigin SlotNo -&gt; Replays
+</span><a href="Cardano.Node.Tracing.StateRep.html#ReplayedBlock"><span class="hs-identifier hs-var">ReplayedBlock</span></a></span><span> </span><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679683859"><span class="hs-identifier hs-var">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point blk -&gt; WithOrigin SlotNo
+forall block. Point block -&gt; WithOrigin SlotNo
+</span><span class="hs-identifier hs-var">pointSlot</span></span><span> </span><span class="annot"><span class="annottext">Point blk
+</span><a href="#local-6989586621679683858"><span class="hs-identifier hs-var">rs</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Point blk -&gt; WithOrigin SlotNo
+forall block. Point block -&gt; WithOrigin SlotNo
+</span><span class="hs-identifier hs-var">pointSlot</span></span><span> </span><span class="annot"><span class="annottext">Point blk
+</span><a href="#local-6989586621679683857"><span class="hs-identifier hs-var">rp</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-221"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">ChainDB.TraceInitChainSelEvent</span></span><span> </span><span id="local-6989586621679683855"><span class="annot"><span class="annottext">TraceInitChainSelEvent blk
+</span><a href="#local-6989586621679683855"><span class="hs-identifier hs-var">ev'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-222"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TraceInitChainSelEvent blk
+</span><a href="#local-6989586621679683855"><span class="hs-identifier hs-var">ev'</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-223"></span><span>        </span><span class="annot"><span class="annottext">TraceInitChainSelEvent blk
+</span><span class="hs-identifier hs-var">ChainDB.StartedInitChainSelection</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-224"></span><span>          </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">InitChainSelection -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeInitChainSelection"><span class="hs-identifier hs-var">NodeInitChainSelection</span></a></span><span> </span><span class="annot"><span class="annottext">InitChainSelection
+</span><a href="Cardano.Node.Tracing.StateRep.html#InitChainStartedSelection"><span class="hs-identifier hs-var">InitChainStartedSelection</span></a></span><span>
+</span><span id="line-225"></span><span>        </span><span class="annot"><span class="annottext">TraceInitChainSelEvent blk
+</span><span class="hs-identifier hs-var">ChainDB.InitalChainSelected</span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-226"></span><span>          </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">InitChainSelection -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeInitChainSelection"><span class="hs-identifier hs-var">NodeInitChainSelection</span></a></span><span> </span><span class="annot"><span class="annottext">InitChainSelection
+</span><a href="Cardano.Node.Tracing.StateRep.html#InitChainSelected"><span class="hs-identifier hs-var">InitChainSelected</span></a></span><span>
+</span><span id="line-227"></span><span>        </span><span class="annot"><span class="annottext">TraceInitChainSelEvent blk
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-228"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">ChainDB.TraceAddBlockEvent</span></span><span> </span><span id="local-6989586621679683851"><span class="annot"><span class="annottext">TraceAddBlockEvent blk
+</span><a href="#local-6989586621679683851"><span class="hs-identifier hs-var">ev'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-229"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">TraceAddBlockEvent blk
+</span><a href="#local-6989586621679683851"><span class="hs-identifier hs-var">ev'</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-230"></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">ChainDB.AddedToCurrentChain</span></span><span> </span><span class="annot"><span class="annottext">[LedgerEvent blk]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ChainDB.NewTipInfo</span></span><span> </span><span id="local-6989586621679683848"><span class="annot"><span class="annottext">RealPoint blk
+</span><a href="#local-6989586621679683848"><span class="hs-identifier hs-var">currentTip</span></a></span></span><span> </span><span id="local-6989586621679683847"><span class="annot"><span class="annottext">EpochNo
+</span><a href="#local-6989586621679683847"><span class="hs-identifier hs-var">ntEpoch</span></a></span></span><span> </span><span id="local-6989586621679683846"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679683846"><span class="hs-identifier hs-var">sInEpoch</span></a></span></span><span> </span><span class="annot"><span class="annottext">RealPoint blk
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">AnchoredFragment (Header blk)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">AnchoredFragment (Header blk)
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-231"></span><span>          </span><span class="hs-comment">-- The slot of the latest block consumed (our progress).</span><span>
+</span><span id="line-232"></span><span>          </span><span class="hs-keyword">let</span><span> </span><span class="annot"><span class="hs-identifier hs-type">RP.RealPoint</span></span><span> </span><span id="local-6989586621679683845"><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679683845"><span class="hs-identifier hs-var">ourSlotSinceSystemStart</span></a></span></span><span> </span><span class="annot"><span class="annottext">HeaderHash blk
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RealPoint blk
+</span><a href="#local-6989586621679683848"><span class="hs-identifier hs-var">currentTip</span></a></span><span>
+</span><span id="line-233"></span><span>          </span><span class="hs-comment">-- The slot corresponding to the latest wall-clock time (our target).</span><span>
+</span><span id="line-234"></span><span>          </span><span id="local-6989586621679683844"><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679683844"><span class="hs-identifier hs-var">slotSinceSystemStart</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO SlotNo
+</span><a href="Cardano.Node.Tracing.StateRep.html#getSlotForNow"><span class="hs-identifier hs-var">getSlotForNow</span></a></span><span>
+</span><span id="line-235"></span><span>          </span><span class="hs-keyword">let</span><span> </span><span class="annot"><a href="#local-6989586621679683842"><span class="hs-identifier hs-type">syncProgressPct</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#SyncPercentage"><span class="hs-identifier hs-type">SyncPercentage</span></a></span><span>
+</span><span id="line-236"></span><span>              </span><span id="local-6989586621679683842"><span class="annot"><span class="annottext">syncProgressPct :: SyncPercentage
+</span><a href="#local-6989586621679683842"><span class="hs-identifier hs-var hs-var">syncProgressPct</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span>   </span><span class="annot"><span class="annottext">Word64 -&gt; SyncPercentage
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">fromIntegral</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNo -&gt; Word64
+</span><span class="hs-identifier hs-var hs-var">unSlotNo</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679683845"><span class="hs-identifier hs-var">ourSlotSinceSystemStart</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-237"></span><span>                                  </span><span class="annot"><span class="annottext">SyncPercentage -&gt; SyncPercentage -&gt; SyncPercentage
+forall a. Fractional a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">/</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; SyncPercentage
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">fromIntegral</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SlotNo -&gt; Word64
+</span><span class="hs-identifier hs-var hs-var">unSlotNo</span></span><span> </span><span class="annot"><span class="annottext">SlotNo
+</span><a href="#local-6989586621679683844"><span class="hs-identifier hs-var">slotSinceSystemStart</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-238"></span><span>                                </span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SyncPercentage -&gt; SyncPercentage -&gt; SyncPercentage
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">*</span></a></span><span> </span><span class="annot"><span class="annottext">SyncPercentage
+</span><span class="hs-number">100.0</span></span><span>
+</span><span id="line-239"></span><span>          </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683884"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">AddedToCurrentChain -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeAddBlock"><span class="hs-identifier hs-var">NodeAddBlock</span></a></span><span> </span><span class="annot"><span class="annottext">(AddedToCurrentChain -&gt; NodeState)
+-&gt; AddedToCurrentChain -&gt; NodeState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span>
+</span><span id="line-240"></span><span>            </span><span class="annot"><span class="annottext">EpochNo -&gt; SlotNo -&gt; SyncPercentage -&gt; AddedToCurrentChain
+</span><a href="Cardano.Node.Tracing.StateRep.html#AddedToCurrentChain"><span class="hs-identifier hs-var">AddedToCurrentChain</span></a></span><span> </span><span class="annot"><span class="annottext">EpochNo
+</span><a href="#local-6989586621679683847"><span class="hs-identifier hs-var">ntEpoch</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; SlotNo
+</span><span class="hs-identifier hs-var">SlotNo</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679683846"><span class="hs-identifier hs-var">sInEpoch</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SyncPercentage
+</span><a href="#local-6989586621679683842"><span class="hs-identifier hs-var">syncProgressPct</span></a></span><span>
+</span><span id="line-241"></span><span>        </span><span class="annot"><span class="annottext">TraceAddBlockEvent blk
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-242"></span><span>    </span><span class="annot"><span class="annottext">TraceEvent blk
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-243"></span><span>
+</span><span id="line-244"></span><span id="local-6989586621679683837"><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#traceNodeStateStartup"><span class="hs-identifier hs-type">traceNodeStateStartup</span></a></span><span>
+</span><span id="line-245"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Trace</span></span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeState"><span class="hs-identifier hs-type">NodeState</span></a></span><span>
+</span><span id="line-246"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Node.Startup.html#StartupTrace"><span class="hs-identifier hs-type">Startup.StartupTrace</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679683837"><span class="hs-identifier hs-type">blk</span></a></span><span>
+</span><span id="line-247"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-248"></span><span id="traceNodeStateStartup"><span class="annot"><span class="annottext">traceNodeStateStartup :: Trace IO NodeState -&gt; StartupTrace blk -&gt; IO ()
+</span><a href="Cardano.Node.Tracing.StateRep.html#traceNodeStateStartup"><span class="hs-identifier hs-var hs-var">traceNodeStateStartup</span></a></span></span><span> </span><span id="local-6989586621679683836"><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683836"><span class="hs-identifier hs-var">tr</span></a></span></span><span> </span><span id="local-6989586621679683835"><span class="annot"><span class="annottext">StartupTrace blk
+</span><a href="#local-6989586621679683835"><span class="hs-identifier hs-var">ev</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-249"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">StartupTrace blk
+</span><a href="#local-6989586621679683835"><span class="hs-identifier hs-var">ev</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-250"></span><span>    </span><span class="annot"><a href="Cardano.Node.Startup.html#StartupSocketConfigError"><span class="hs-identifier hs-type">Startup.StartupSocketConfigError</span></a></span><span> </span><span id="local-6989586621679683833"><span class="annot"><span class="annottext">SocketConfigError
+</span><a href="#local-6989586621679683833"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-251"></span><span>      </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683836"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">StartupState -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeStartup"><span class="hs-identifier hs-var">NodeStartup</span></a></span><span> </span><span class="annot"><span class="annottext">(StartupState -&gt; NodeState) -&gt; StartupState -&gt; NodeState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; StartupState
+</span><a href="Cardano.Node.Tracing.StateRep.html#StartupSocketConfigError"><span class="hs-identifier hs-var">StartupSocketConfigError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SocketConfigError -&gt; Text
+forall a. Show a =&gt; a -&gt; Text
+</span><a href="../file:///home/runner/work/cardano-node/cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.7/cardano-api-1.36.0/noopt/doc/html/cardano-api/src"><span class="hs-identifier hs-var">textShow</span></a></span><span> </span><span class="annot"><span class="annottext">SocketConfigError
+</span><a href="#local-6989586621679683833"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-252"></span><span>    </span><span class="annot"><span class="annottext">StartupTrace blk
+</span><a href="Cardano.Node.Startup.html#StartupDBValidation"><span class="hs-identifier hs-var">Startup.StartupDBValidation</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-253"></span><span>      </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683836"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">StartupState -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeStartup"><span class="hs-identifier hs-var">NodeStartup</span></a></span><span> </span><span class="annot"><span class="annottext">StartupState
+</span><a href="Cardano.Node.Tracing.StateRep.html#StartupDBValidation"><span class="hs-identifier hs-var">StartupDBValidation</span></a></span><span>
+</span><span id="line-254"></span><span>    </span><span class="annot"><span class="annottext">StartupTrace blk
+</span><a href="Cardano.Node.Startup.html#NetworkConfigUpdate"><span class="hs-identifier hs-var">Startup.NetworkConfigUpdate</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-255"></span><span>      </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683836"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">StartupState -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeStartup"><span class="hs-identifier hs-var">NodeStartup</span></a></span><span> </span><span class="annot"><span class="annottext">StartupState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NetworkConfigUpdate"><span class="hs-identifier hs-var">NetworkConfigUpdate</span></a></span><span>
+</span><span id="line-256"></span><span>    </span><span class="annot"><a href="Cardano.Node.Startup.html#NetworkConfigUpdateError"><span class="hs-identifier hs-type">Startup.NetworkConfigUpdateError</span></a></span><span> </span><span id="local-6989586621679683829"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679683829"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-257"></span><span>      </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683836"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">StartupState -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeStartup"><span class="hs-identifier hs-var">NodeStartup</span></a></span><span> </span><span class="annot"><span class="annottext">(StartupState -&gt; NodeState) -&gt; StartupState -&gt; NodeState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; StartupState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NetworkConfigUpdateError"><span class="hs-identifier hs-var">NetworkConfigUpdateError</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679683829"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-258"></span><span>    </span><span class="annot"><span class="annottext">StartupTrace blk
+</span><a href="Cardano.Node.Startup.html#P2PWarning"><span class="hs-identifier hs-var">Startup.P2PWarning</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-259"></span><span>      </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683836"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">StartupState -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeStartup"><span class="hs-identifier hs-var">NodeStartup</span></a></span><span> </span><span class="annot"><span class="annottext">StartupState
+</span><a href="Cardano.Node.Tracing.StateRep.html#P2PWarning"><span class="hs-identifier hs-var">P2PWarning</span></a></span><span>
+</span><span id="line-260"></span><span>    </span><span class="annot"><span class="annottext">StartupTrace blk
+</span><a href="Cardano.Node.Startup.html#P2PWarningDevelopementNetworkProtocols"><span class="hs-identifier hs-var">Startup.P2PWarningDevelopementNetworkProtocols</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-261"></span><span>      </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683836"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">StartupState -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeStartup"><span class="hs-identifier hs-var">NodeStartup</span></a></span><span> </span><span class="annot"><span class="annottext">StartupState
+</span><a href="Cardano.Node.Tracing.StateRep.html#P2PWarningDevelopementNetworkProtocols"><span class="hs-identifier hs-var">P2PWarningDevelopementNetworkProtocols</span></a></span><span>
+</span><span id="line-262"></span><span>    </span><span class="annot"><a href="Cardano.Node.Startup.html#WarningDevelopmentNetworkProtocols"><span class="hs-identifier hs-type">Startup.WarningDevelopmentNetworkProtocols</span></a></span><span> </span><span id="local-6989586621679683825"><span class="annot"><span class="annottext">[NodeToNodeVersion]
+</span><a href="#local-6989586621679683825"><span class="hs-identifier hs-var">n2ns</span></a></span></span><span> </span><span id="local-6989586621679683824"><span class="annot"><span class="annottext">[NodeToClientVersion]
+</span><a href="#local-6989586621679683824"><span class="hs-identifier hs-var">n2cs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-263"></span><span>      </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683836"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ()) -&gt; NodeState -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">StartupState -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeStartup"><span class="hs-identifier hs-var">NodeStartup</span></a></span><span> </span><span class="annot"><span class="annottext">(StartupState -&gt; NodeState) -&gt; StartupState -&gt; NodeState
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">[NodeToNodeVersion] -&gt; [NodeToClientVersion] -&gt; StartupState
+</span><a href="Cardano.Node.Tracing.StateRep.html#WarningDevelopmentNetworkProtocols"><span class="hs-identifier hs-var">WarningDevelopmentNetworkProtocols</span></a></span><span> </span><span class="annot"><span class="annottext">[NodeToNodeVersion]
+</span><a href="#local-6989586621679683825"><span class="hs-identifier hs-var">n2ns</span></a></span><span> </span><span class="annot"><span class="annottext">[NodeToClientVersion]
+</span><a href="#local-6989586621679683824"><span class="hs-identifier hs-var">n2cs</span></a></span><span>
+</span><span id="line-264"></span><span>    </span><span class="annot"><span class="annottext">StartupTrace blk
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-265"></span><span>
+</span><span id="line-266"></span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#traceNodeStateShutdown"><span class="hs-identifier hs-type">traceNodeStateShutdown</span></a></span><span>
+</span><span id="line-267"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Trace</span></span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#NodeState"><span class="hs-identifier hs-type">NodeState</span></a></span><span>
+</span><span id="line-268"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Node.Handlers.Shutdown.html#ShutdownTrace"><span class="hs-identifier hs-type">ShutdownTrace</span></a></span><span>
+</span><span id="line-269"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-270"></span><span id="traceNodeStateShutdown"><span class="annot"><span class="annottext">traceNodeStateShutdown :: Trace IO NodeState -&gt; ShutdownTrace -&gt; IO ()
+</span><a href="Cardano.Node.Tracing.StateRep.html#traceNodeStateShutdown"><span class="hs-identifier hs-var hs-var">traceNodeStateShutdown</span></a></span></span><span> </span><span id="local-6989586621679683823"><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683823"><span class="hs-identifier hs-var">tr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState -&gt; NodeState -&gt; IO ()
+forall (m :: * -&gt; *) a. Monad m =&gt; Trace m a -&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">traceWith</span></span><span> </span><span class="annot"><span class="annottext">Trace IO NodeState
+</span><a href="#local-6989586621679683823"><span class="hs-identifier hs-var">tr</span></a></span><span> </span><span class="annot"><span class="annottext">(NodeState -&gt; IO ())
+-&gt; (ShutdownTrace -&gt; NodeState) -&gt; ShutdownTrace -&gt; IO ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">ShutdownTrace -&gt; NodeState
+</span><a href="Cardano.Node.Tracing.StateRep.html#NodeShutdown"><span class="hs-identifier hs-var">NodeShutdown</span></a></span><span>
+</span><span id="line-271"></span><span>
+</span><span id="line-272"></span><span class="hs-comment">-- Misc.</span><span>
+</span><span id="line-273"></span><span>
+</span><span id="line-274"></span><span class="annot"><a href="Cardano.Node.Tracing.StateRep.html#getSlotForNow"><span class="hs-identifier hs-type">getSlotForNow</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">SlotNo</span></span><span>
+</span><span id="line-275"></span><span id="getSlotForNow"><span class="annot"><span class="annottext">getSlotForNow :: IO SlotNo
+</span><a href="Cardano.Node.Tracing.StateRep.html#getSlotForNow"><span class="hs-identifier hs-var hs-var">getSlotForNow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-276"></span><span>  </span><span id="local-6989586621679683821"><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679683821"><span class="hs-identifier hs-var">posixNow</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">UTCTime -&gt; Word64
+</span><a href="#local-6989586621679683820"><span class="hs-identifier hs-var">utc2s</span></a></span><span> </span><span class="annot"><span class="annottext">(UTCTime -&gt; Word64) -&gt; IO UTCTime -&gt; IO Word64
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;$&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">IO UTCTime
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/time-1.9.3/src"><span class="hs-identifier hs-var">getCurrentTime</span></a></span><span>
+</span><span id="line-277"></span><span>  </span><span class="hs-comment">-- Since Shelley era the slot length is 1 second, so the number of seconds is the number of slots.</span><span>
+</span><span id="line-278"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679683817"><span class="annot"><span class="annottext">numberOfSlotsFromShelleyTillNow :: Word64
+</span><a href="#local-6989586621679683817"><span class="hs-identifier hs-var hs-var">numberOfSlotsFromShelleyTillNow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679683821"><span class="hs-identifier hs-var">posixNow</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-glyph hs-var">-</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679683816"><span class="hs-identifier hs-var">posixStartOfShelleyEra</span></a></span><span>
+</span><span id="line-279"></span><span>      </span><span id="local-6989586621679683815"><span class="annot"><span class="annottext">totalNumberOfSlotsTillNow :: Word64
+</span><a href="#local-6989586621679683815"><span class="hs-identifier hs-var hs-var">totalNumberOfSlotsTillNow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679683814"><span class="hs-identifier hs-var">numberOfSlotsInByronEra</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; Word64 -&gt; Word64
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">+</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679683817"><span class="hs-identifier hs-var">numberOfSlotsFromShelleyTillNow</span></a></span><span>
+</span><span id="line-280"></span><span>  </span><span class="annot"><span class="annottext">SlotNo -&gt; IO SlotNo
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(SlotNo -&gt; IO SlotNo) -&gt; SlotNo -&gt; IO SlotNo
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; SlotNo
+</span><span class="hs-identifier hs-var">SlotNo</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679683815"><span class="hs-identifier hs-var">totalNumberOfSlotsTillNow</span></a></span><span>
+</span><span id="line-281"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-282"></span><span>  </span><span class="hs-comment">-- These numbers are taken from 'First-Block-of-Each-Era' wiki page.</span><span>
+</span><span id="line-283"></span><span>  </span><span id="local-6989586621679683816"><span class="annot"><span class="annottext">posixStartOfShelleyEra :: Word64
+</span><a href="#local-6989586621679683816"><span class="hs-identifier hs-var hs-var">posixStartOfShelleyEra</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">1596073491</span></span><span>
+</span><span id="line-284"></span><span>  </span><span id="local-6989586621679683814"><span class="annot"><span class="annottext">numberOfSlotsInByronEra :: Word64
+</span><a href="#local-6989586621679683814"><span class="hs-identifier hs-var hs-var">numberOfSlotsInByronEra</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">4492799</span></span><span>
+</span><span id="line-285"></span><span>  </span><span id="local-6989586621679683820"><span class="annot"><span class="annottext">utc2s :: UTCTime -&gt; Word64
+</span><a href="#local-6989586621679683820"><span class="hs-identifier hs-var hs-var">utc2s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Integer -&gt; Word64
+forall a. Num a =&gt; Integer -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">fromInteger</span></a></span><span> </span><span class="annot"><span class="annottext">(Integer -&gt; Word64) -&gt; (UTCTime -&gt; Integer) -&gt; UTCTime -&gt; Word64
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Integer
+forall a b. (RealFrac a, Integral b) =&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">round</span></a></span><span> </span><span class="annot"><span class="annottext">(POSIXTime -&gt; Integer)
+-&gt; (UTCTime -&gt; POSIXTime) -&gt; UTCTime -&gt; Integer
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime -&gt; POSIXTime
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/time-1.9.3/src"><span class="hs-identifier hs-var">utcTimeToPOSIXSeconds</span></a></span><span>
+</span><span id="line-286"></span></pre></body></html>

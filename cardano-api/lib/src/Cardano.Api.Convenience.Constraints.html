@@ -1,0 +1,45 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE GADTs #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- | Constraint satisfaction functions. These are used to avoid propagating constraints.</span><span>
+</span><span id="line-5"></span><span class="hs-comment">--</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Api.Convenience.Constraints</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cardano.Api.Convenience.Constraints.html#getIsCardanoEraConstraint"><span class="hs-identifier">getIsCardanoEraConstraint</span></a></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.Eras.html"><span class="hs-identifier">Cardano.Api.Eras</span></a></span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span id="local-6989586621679608643"><span id="local-6989586621679608644"><span class="annot"><a href="Cardano.Api.Convenience.Constraints.html#getIsCardanoEraConstraint"><span class="hs-identifier hs-type">getIsCardanoEraConstraint</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Api.Eras.html#CardanoEra"><span class="hs-identifier hs-type">CardanoEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679608644"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Api.Eras.html#IsCardanoEra"><span class="hs-identifier hs-type">IsCardanoEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679608644"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679608643"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679608643"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-14"></span><span id="getIsCardanoEraConstraint"><span class="annot"><span class="annottext">getIsCardanoEraConstraint :: CardanoEra era -&gt; (IsCardanoEra era =&gt; a) -&gt; a
+</span><a href="Cardano.Api.Convenience.Constraints.html#getIsCardanoEraConstraint"><span class="hs-identifier hs-var hs-var">getIsCardanoEraConstraint</span></a></span></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="Cardano.Api.Eras.html#ByronEra"><span class="hs-identifier hs-var">ByronEra</span></a></span><span> </span><span id="local-6989586621679608641"><span class="annot"><span class="annottext">IsCardanoEra era =&gt; a
+</span><a href="#local-6989586621679608641"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+IsCardanoEra era =&gt; a
+</span><a href="#local-6989586621679608641"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-15"></span><span class="annot"><a href="Cardano.Api.Convenience.Constraints.html#getIsCardanoEraConstraint"><span class="hs-identifier hs-var">getIsCardanoEraConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="Cardano.Api.Eras.html#ShelleyEra"><span class="hs-identifier hs-var">ShelleyEra</span></a></span><span> </span><span id="local-6989586621679608639"><span class="annot"><span class="annottext">IsCardanoEra era =&gt; a
+</span><a href="#local-6989586621679608639"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+IsCardanoEra era =&gt; a
+</span><a href="#local-6989586621679608639"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-16"></span><span class="annot"><a href="Cardano.Api.Convenience.Constraints.html#getIsCardanoEraConstraint"><span class="hs-identifier hs-var">getIsCardanoEraConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="Cardano.Api.Eras.html#AllegraEra"><span class="hs-identifier hs-var">AllegraEra</span></a></span><span> </span><span id="local-6989586621679608637"><span class="annot"><span class="annottext">IsCardanoEra era =&gt; a
+</span><a href="#local-6989586621679608637"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+IsCardanoEra era =&gt; a
+</span><a href="#local-6989586621679608637"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-17"></span><span class="annot"><a href="Cardano.Api.Convenience.Constraints.html#getIsCardanoEraConstraint"><span class="hs-identifier hs-var">getIsCardanoEraConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="Cardano.Api.Eras.html#MaryEra"><span class="hs-identifier hs-var">MaryEra</span></a></span><span> </span><span id="local-6989586621679608635"><span class="annot"><span class="annottext">IsCardanoEra era =&gt; a
+</span><a href="#local-6989586621679608635"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+IsCardanoEra era =&gt; a
+</span><a href="#local-6989586621679608635"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-18"></span><span class="annot"><a href="Cardano.Api.Convenience.Constraints.html#getIsCardanoEraConstraint"><span class="hs-identifier hs-var">getIsCardanoEraConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="Cardano.Api.Eras.html#AlonzoEra"><span class="hs-identifier hs-var">AlonzoEra</span></a></span><span> </span><span id="local-6989586621679608633"><span class="annot"><span class="annottext">IsCardanoEra era =&gt; a
+</span><a href="#local-6989586621679608633"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+IsCardanoEra era =&gt; a
+</span><a href="#local-6989586621679608633"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-19"></span><span class="annot"><a href="Cardano.Api.Convenience.Constraints.html#getIsCardanoEraConstraint"><span class="hs-identifier hs-var">getIsCardanoEraConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="Cardano.Api.Eras.html#BabbageEra"><span class="hs-identifier hs-var">BabbageEra</span></a></span><span> </span><span id="local-6989586621679608631"><span class="annot"><span class="annottext">IsCardanoEra era =&gt; a
+</span><a href="#local-6989586621679608631"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+IsCardanoEra era =&gt; a
+</span><a href="#local-6989586621679608631"><span class="hs-identifier hs-var">f</span></a></span><span>
+</span><span id="line-20"></span></pre></body></html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE GeneralizedNewtypeDeriving #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE OverloadedStrings #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Api.Environment</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Cardano.Api.Environment.html#EnvSocketError"><span class="hs-identifier">EnvSocketError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Api.Environment.html#SocketPath"><span class="hs-identifier">SocketPath</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Api.Environment.html#readEnvSocketPath"><span class="hs-identifier">readEnvSocketPath</span></a></span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Api.Environment.html#renderEnvSocketError"><span class="hs-identifier">renderEnvSocketError</span></a></span><span>
+</span><span id="line-9"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier">Data.Text</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier">Text</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier">Data.Text</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Text</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier">System.Environment</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier">lookupEnv</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.Utils.html"><span class="hs-identifier">Cardano.Api.Utils</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Api.Utils.html#textShow"><span class="hs-identifier">textShow</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">newtype</span><span> </span><span id="SocketPath"><span class="annot"><a href="Cardano.Api.Environment.html#SocketPath"><span class="hs-identifier hs-var">SocketPath</span></a></span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="SocketPath"><span class="annot"><a href="Cardano.Api.Environment.html#SocketPath"><span class="hs-identifier hs-var">SocketPath</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="unSocketPath"><span class="annot"><span class="annottext">SocketPath -&gt; FilePath
+</span><a href="Cardano.Api.Environment.html#unSocketPath"><span class="hs-identifier hs-var hs-var">unSocketPath</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">FilePath</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679618379"><span id="local-6989586621679618381"><span class="annot"><span class="annottext">Value -&gt; Parser [SocketPath]
+Value -&gt; Parser SocketPath
+(Value -&gt; Parser SocketPath)
+-&gt; (Value -&gt; Parser [SocketPath]) -&gt; FromJSON SocketPath
+forall a.
+(Value -&gt; Parser a) -&gt; (Value -&gt; Parser [a]) -&gt; FromJSON a
+parseJSONList :: Value -&gt; Parser [SocketPath]
+$cparseJSONList :: Value -&gt; Parser [SocketPath]
+parseJSON :: Value -&gt; Parser SocketPath
+$cparseJSON :: Value -&gt; Parser SocketPath
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">FromJSON</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679618372"><span id="local-6989586621679618374"><span id="local-6989586621679618376"><span class="annot"><span class="annottext">Int -&gt; SocketPath -&gt; ShowS
+[SocketPath] -&gt; ShowS
+SocketPath -&gt; FilePath
+(Int -&gt; SocketPath -&gt; ShowS)
+-&gt; (SocketPath -&gt; FilePath)
+-&gt; ([SocketPath] -&gt; ShowS)
+-&gt; Show SocketPath
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; FilePath) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [SocketPath] -&gt; ShowS
+$cshowList :: [SocketPath] -&gt; ShowS
+show :: SocketPath -&gt; FilePath
+$cshow :: SocketPath -&gt; FilePath
+showsPrec :: Int -&gt; SocketPath -&gt; ShowS
+$cshowsPrec :: Int -&gt; SocketPath -&gt; ShowS
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></a></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679618367"><span id="local-6989586621679618369"><span class="annot"><span class="annottext">SocketPath -&gt; SocketPath -&gt; Bool
+(SocketPath -&gt; SocketPath -&gt; Bool)
+-&gt; (SocketPath -&gt; SocketPath -&gt; Bool) -&gt; Eq SocketPath
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: SocketPath -&gt; SocketPath -&gt; Bool
+$c/= :: SocketPath -&gt; SocketPath -&gt; Bool
+== :: SocketPath -&gt; SocketPath -&gt; Bool
+$c== :: SocketPath -&gt; SocketPath -&gt; Bool
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></a></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679618351"><span id="local-6989586621679618353"><span id="local-6989586621679618355"><span id="local-6989586621679618357"><span id="local-6989586621679618359"><span id="local-6989586621679618361"><span id="local-6989586621679618363"><span class="annot"><span class="annottext">Eq SocketPath
+Eq SocketPath
+-&gt; (SocketPath -&gt; SocketPath -&gt; Ordering)
+-&gt; (SocketPath -&gt; SocketPath -&gt; Bool)
+-&gt; (SocketPath -&gt; SocketPath -&gt; Bool)
+-&gt; (SocketPath -&gt; SocketPath -&gt; Bool)
+-&gt; (SocketPath -&gt; SocketPath -&gt; Bool)
+-&gt; (SocketPath -&gt; SocketPath -&gt; SocketPath)
+-&gt; (SocketPath -&gt; SocketPath -&gt; SocketPath)
+-&gt; Ord SocketPath
+SocketPath -&gt; SocketPath -&gt; Bool
+SocketPath -&gt; SocketPath -&gt; Ordering
+SocketPath -&gt; SocketPath -&gt; SocketPath
+forall a.
+Eq a
+-&gt; (a -&gt; a -&gt; Ordering)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; Bool)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; Ord a
+min :: SocketPath -&gt; SocketPath -&gt; SocketPath
+$cmin :: SocketPath -&gt; SocketPath -&gt; SocketPath
+max :: SocketPath -&gt; SocketPath -&gt; SocketPath
+$cmax :: SocketPath -&gt; SocketPath -&gt; SocketPath
+&gt;= :: SocketPath -&gt; SocketPath -&gt; Bool
+$c&gt;= :: SocketPath -&gt; SocketPath -&gt; Bool
+&gt; :: SocketPath -&gt; SocketPath -&gt; Bool
+$c&gt; :: SocketPath -&gt; SocketPath -&gt; Bool
+&lt;= :: SocketPath -&gt; SocketPath -&gt; Bool
+$c&lt;= :: SocketPath -&gt; SocketPath -&gt; Bool
+&lt; :: SocketPath -&gt; SocketPath -&gt; Bool
+$c&lt; :: SocketPath -&gt; SocketPath -&gt; Bool
+compare :: SocketPath -&gt; SocketPath -&gt; Ordering
+$ccompare :: SocketPath -&gt; SocketPath -&gt; Ordering
+$cp1Ord :: Eq SocketPath
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Ord</span></a></span></span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">newtype</span><span> </span><span id="EnvSocketError"><span class="annot"><a href="Cardano.Api.Environment.html#EnvSocketError"><span class="hs-identifier hs-var">EnvSocketError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="CliEnvVarLookup"><span class="annot"><a href="Cardano.Api.Environment.html#CliEnvVarLookup"><span class="hs-identifier hs-var">CliEnvVarLookup</span></a></span></span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier hs-type">Text</span></a></span><span> </span><span class="hs-keyword">deriving</span><span> </span><span id="local-6989586621679618343"><span id="local-6989586621679618345"><span id="local-6989586621679618347"><span class="annot"><span class="annottext">Int -&gt; EnvSocketError -&gt; ShowS
+[EnvSocketError] -&gt; ShowS
+EnvSocketError -&gt; FilePath
+(Int -&gt; EnvSocketError -&gt; ShowS)
+-&gt; (EnvSocketError -&gt; FilePath)
+-&gt; ([EnvSocketError] -&gt; ShowS)
+-&gt; Show EnvSocketError
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; FilePath) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [EnvSocketError] -&gt; ShowS
+$cshowList :: [EnvSocketError] -&gt; ShowS
+show :: EnvSocketError -&gt; FilePath
+$cshow :: EnvSocketError -&gt; FilePath
+showsPrec :: Int -&gt; EnvSocketError -&gt; ShowS
+$cshowsPrec :: Int -&gt; EnvSocketError -&gt; ShowS
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></a></span></span></span></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="annot"><a href="Cardano.Api.Environment.html#renderEnvSocketError"><span class="hs-identifier hs-type">renderEnvSocketError</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Api.Environment.html#EnvSocketError"><span class="hs-identifier hs-type">EnvSocketError</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier hs-type">Text</span></a></span><span>
+</span><span id="line-25"></span><span id="renderEnvSocketError"><span class="annot"><span class="annottext">renderEnvSocketError :: EnvSocketError -&gt; Text
+</span><a href="Cardano.Api.Environment.html#renderEnvSocketError"><span class="hs-identifier hs-var hs-var">renderEnvSocketError</span></a></span></span><span> </span><span id="local-6989586621679618342"><span class="annot"><span class="annottext">EnvSocketError
+</span><a href="#local-6989586621679618342"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">EnvSocketError
+</span><a href="#local-6989586621679618342"><span class="hs-identifier hs-var">err</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-27"></span><span>    </span><span class="annot"><a href="Cardano.Api.Environment.html#CliEnvVarLookup"><span class="hs-identifier hs-type">CliEnvVarLookup</span></a></span><span> </span><span id="local-6989586621679618341"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679618341"><span class="hs-identifier hs-var">txt</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-28"></span><span>      </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Error while looking up environment variable: CARDANO_NODE_SOCKET_PATH &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot; Error: &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text
+forall a. Show a =&gt; a -&gt; Text
+</span><a href="Cardano.Api.Utils.html#textShow"><span class="hs-identifier hs-var">textShow</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679618341"><span class="hs-identifier hs-var">txt</span></a></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | Read the node socket path from the environment.</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- Fails if the environment variable is not set.</span><span>
+</span><span id="line-32"></span><span class="annot"><a href="Cardano.Api.Environment.html#readEnvSocketPath"><span class="hs-identifier hs-type">readEnvSocketPath</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.Environment.html#EnvSocketError"><span class="hs-identifier hs-type">EnvSocketError</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.Environment.html#SocketPath"><span class="hs-identifier hs-type">SocketPath</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span id="readEnvSocketPath"><span class="annot"><span class="annottext">readEnvSocketPath :: IO (Either EnvSocketError SocketPath)
+</span><a href="Cardano.Api.Environment.html#readEnvSocketPath"><span class="hs-identifier hs-var hs-var">readEnvSocketPath</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-34"></span><span>    </span><span id="local-6989586621679618340"><span class="annot"><span class="annottext">Maybe FilePath
+</span><a href="#local-6989586621679618340"><span class="hs-identifier hs-var">mEnvName</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; IO (Maybe FilePath)
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">lookupEnv</span></a></span><span> </span><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679618339"><span class="hs-identifier hs-var">envName</span></a></span><span>
+</span><span id="line-35"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Maybe FilePath
+</span><a href="#local-6989586621679618340"><span class="hs-identifier hs-var">mEnvName</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-36"></span><span>      </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Just</span></a></span><span> </span><span id="local-6989586621679618338"><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679618338"><span class="hs-identifier hs-var">sPath</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-37"></span><span>        </span><span class="annot"><span class="annottext">Either EnvSocketError SocketPath
+-&gt; IO (Either EnvSocketError SocketPath)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(Either EnvSocketError SocketPath
+ -&gt; IO (Either EnvSocketError SocketPath))
+-&gt; (SocketPath -&gt; Either EnvSocketError SocketPath)
+-&gt; SocketPath
+-&gt; IO (Either EnvSocketError SocketPath)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">SocketPath -&gt; Either EnvSocketError SocketPath
+forall a b. b -&gt; Either a b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Right</span></a></span><span> </span><span class="annot"><span class="annottext">(SocketPath -&gt; IO (Either EnvSocketError SocketPath))
+-&gt; SocketPath -&gt; IO (Either EnvSocketError SocketPath)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">FilePath -&gt; SocketPath
+</span><a href="Cardano.Api.Environment.html#SocketPath"><span class="hs-identifier hs-var">SocketPath</span></a></span><span> </span><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679618338"><span class="hs-identifier hs-var">sPath</span></a></span><span>
+</span><span id="line-38"></span><span>      </span><span class="annot"><span class="annottext">Maybe FilePath
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-39"></span><span>        </span><span class="annot"><span class="annottext">Either EnvSocketError SocketPath
+-&gt; IO (Either EnvSocketError SocketPath)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(Either EnvSocketError SocketPath
+ -&gt; IO (Either EnvSocketError SocketPath))
+-&gt; (EnvSocketError -&gt; Either EnvSocketError SocketPath)
+-&gt; EnvSocketError
+-&gt; IO (Either EnvSocketError SocketPath)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">EnvSocketError -&gt; Either EnvSocketError SocketPath
+forall a b. a -&gt; Either a b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Left</span></a></span><span> </span><span class="annot"><span class="annottext">(EnvSocketError -&gt; IO (Either EnvSocketError SocketPath))
+-&gt; EnvSocketError -&gt; IO (Either EnvSocketError SocketPath)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; EnvSocketError
+</span><a href="Cardano.Api.Environment.html#CliEnvVarLookup"><span class="hs-identifier hs-var">CliEnvVarLookup</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">FilePath -&gt; Text
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier hs-var">Text.pack</span></a></span><span> </span><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679618339"><span class="hs-identifier hs-var">envName</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-41"></span><span>    </span><span class="annot"><a href="#local-6989586621679618339"><span class="hs-identifier hs-type">envName</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">String</span></a></span><span>
+</span><span id="line-42"></span><span>    </span><span id="local-6989586621679618339"><span class="annot"><span class="annottext">envName :: FilePath
+</span><a href="#local-6989586621679618339"><span class="hs-identifier hs-var hs-var">envName</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">FilePath
+</span><span class="hs-string">&quot;CARDANO_NODE_SOCKET_PATH&quot;</span></span><span>
+</span><span id="line-43"></span></pre></body></html>

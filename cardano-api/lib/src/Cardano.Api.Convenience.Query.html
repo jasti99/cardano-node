@@ -1,0 +1,840 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE ScopedTypeVariables #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-3"></span><span>
+</span><span id="line-4"></span><span class="hs-comment">-- | Convenience query functions</span><span>
+</span><span id="line-5"></span><span class="hs-comment">--</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Cardano.Api.Convenience.Query</span><span> </span><span class="hs-special">(</span><span>
+</span><span id="line-7"></span><span>    </span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#QueryConvenienceError"><span class="hs-identifier">QueryConvenienceError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span>
+</span><span id="line-8"></span><span>    </span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#determineEra"><span class="hs-identifier">determineEra</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-9"></span><span>    </span><span class="annot"><span class="hs-comment">-- * Simplest query related</span></span><span>
+</span><span id="line-10"></span><span>    </span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#executeQueryCardanoMode"><span class="hs-identifier">executeQueryCardanoMode</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span>    </span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#queryStateForBalancedTx"><span class="hs-identifier">queryStateForBalancedTx</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-13"></span><span>    </span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#renderQueryConvenienceError"><span class="hs-identifier">renderQueryConvenienceError</span></a></span><span class="hs-special">,</span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier">Control.Monad.Trans.Except</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier">ExceptT</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier">except</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier">runExceptT</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Control.Monad.Trans.Except.Extra</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">firstExceptT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">hoistMaybe</span></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier">Data.Bifunctor</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier">first</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier">Data.Function</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator">(&amp;)</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/containers-0.6.5.1/src"><span class="hs-identifier">Data.Set</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/containers-0.6.5.1/src"><span class="hs-identifier">Set</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/containers-0.6.5.1/src"><span class="hs-identifier">Data.Set</span></a></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Set</span></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier">Data.Text</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier">Text</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><span class="hs-identifier">Ouroboros.Consensus.HardFork.Combinator.AcrossEras</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">EraMismatch</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.Certificate.html"><span class="hs-identifier">Cardano.Api.Certificate</span></a></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.Convenience.Constraints.html"><span class="hs-identifier">Cardano.Api.Convenience.Constraints</span></a></span><span>
+</span><span id="line-28"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.Environment.html"><span class="hs-identifier">Cardano.Api.Environment</span></a></span><span>
+</span><span id="line-29"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.Eras.html"><span class="hs-identifier">Cardano.Api.Eras</span></a></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.IPC.html"><span class="hs-identifier">Cardano.Api.IPC</span></a></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.Modes.html"><span class="hs-identifier">Cardano.Api.Modes</span></a></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.NetworkId.html"><span class="hs-identifier">Cardano.Api.NetworkId</span></a></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.ProtocolParameters.html"><span class="hs-identifier">Cardano.Api.ProtocolParameters</span></a></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.Query.html"><span class="hs-identifier">Cardano.Api.Query</span></a></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.TxBody.html"><span class="hs-identifier">Cardano.Api.TxBody</span></a></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">import</span><span>           </span><span class="annot"><a href="Cardano.Api.Utils.html"><span class="hs-identifier">Cardano.Api.Utils</span></a></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">data</span><span> </span><span id="QueryConvenienceError"><span class="annot"><a href="Cardano.Api.Convenience.Query.html#QueryConvenienceError"><span class="hs-identifier hs-var">QueryConvenienceError</span></a></span></span><span>
+</span><span id="line-39"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="AcqFailure"><span class="annot"><a href="Cardano.Api.Convenience.Query.html#AcqFailure"><span class="hs-identifier hs-var">AcqFailure</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Api.IPC.html#AcquiringFailure"><span class="hs-identifier hs-type">AcquiringFailure</span></a></span><span>
+</span><span id="line-40"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="SockErr"><span class="annot"><a href="Cardano.Api.Convenience.Query.html#SockErr"><span class="hs-identifier hs-var">SockErr</span></a></span></span><span> </span><span class="annot"><a href="Cardano.Api.Environment.html#EnvSocketError"><span class="hs-identifier hs-type">EnvSocketError</span></a></span><span>
+</span><span id="line-41"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="QueryEraMismatch"><span class="annot"><a href="Cardano.Api.Convenience.Query.html#QueryEraMismatch"><span class="hs-identifier hs-var">QueryEraMismatch</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">EraMismatch</span></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="ByronEraNotSupported"><span class="annot"><a href="Cardano.Api.Convenience.Query.html#ByronEraNotSupported"><span class="hs-identifier hs-var">ByronEraNotSupported</span></a></span></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="EraConsensusModeMismatch"><span class="annot"><a href="Cardano.Api.Convenience.Query.html#EraConsensusModeMismatch"><span class="hs-identifier hs-var">EraConsensusModeMismatch</span></a></span></span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Cardano.Api.Modes.html#AnyConsensusMode"><span class="hs-identifier hs-type">AnyConsensusMode</span></a></span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Cardano.Api.Eras.html#AnyCardanoEra"><span class="hs-identifier hs-type">AnyCardanoEra</span></a></span><span>
+</span><span id="line-44"></span><span>
+</span><span id="line-45"></span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#renderQueryConvenienceError"><span class="hs-identifier hs-type">renderQueryConvenienceError</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#QueryConvenienceError"><span class="hs-identifier hs-type">QueryConvenienceError</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/text-1.2.4.1/src"><span class="hs-identifier hs-type">Text</span></a></span><span>
+</span><span id="line-46"></span><span id="renderQueryConvenienceError"><span class="annot"><span class="annottext">renderQueryConvenienceError :: QueryConvenienceError -&gt; Text
+</span><a href="Cardano.Api.Convenience.Query.html#renderQueryConvenienceError"><span class="hs-identifier hs-var hs-var">renderQueryConvenienceError</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#AcqFailure"><span class="hs-identifier hs-type">AcqFailure</span></a></span><span> </span><span id="local-6989586621679633375"><span class="annot"><span class="annottext">AcquiringFailure
+</span><a href="#local-6989586621679633375"><span class="hs-identifier hs-var">e</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-47"></span><span>  </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Acquiring failure: &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">AcquiringFailure -&gt; Text
+forall a. Show a =&gt; a -&gt; Text
+</span><a href="Cardano.Api.Utils.html#textShow"><span class="hs-identifier hs-var">textShow</span></a></span><span> </span><span class="annot"><span class="annottext">AcquiringFailure
+</span><a href="#local-6989586621679633375"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-48"></span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#renderQueryConvenienceError"><span class="hs-identifier hs-var">renderQueryConvenienceError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#SockErr"><span class="hs-identifier hs-type">SockErr</span></a></span><span> </span><span id="local-6989586621679633373"><span class="annot"><span class="annottext">EnvSocketError
+</span><a href="#local-6989586621679633373"><span class="hs-identifier hs-var">e</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-49"></span><span>  </span><span class="annot"><span class="annottext">EnvSocketError -&gt; Text
+</span><a href="Cardano.Api.Environment.html#renderEnvSocketError"><span class="hs-identifier hs-var">renderEnvSocketError</span></a></span><span> </span><span class="annot"><span class="annottext">EnvSocketError
+</span><a href="#local-6989586621679633373"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-50"></span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#renderQueryConvenienceError"><span class="hs-identifier hs-var">renderQueryConvenienceError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#QueryEraMismatch"><span class="hs-identifier hs-type">QueryEraMismatch</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">EraMismatch</span></span><span> </span><span id="local-6989586621679633370"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679633370"><span class="hs-identifier hs-var">ledgerEraName'</span></a></span></span><span> </span><span id="local-6989586621679633369"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679633369"><span class="hs-identifier hs-var">otherEraName'</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-51"></span><span>  </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;The era of the node and the tx do not match. &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;The node is running in the &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679633370"><span class="hs-identifier hs-var">ledgerEraName'</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot; era, but the transaction is for the &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679633369"><span class="hs-identifier hs-var">otherEraName'</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot; era.&quot;</span></span><span>
+</span><span id="line-54"></span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#renderQueryConvenienceError"><span class="hs-identifier hs-var">renderQueryConvenienceError</span></a></span><span> </span><span class="annot"><span class="annottext">QueryConvenienceError
+</span><a href="Cardano.Api.Convenience.Query.html#ByronEraNotSupported"><span class="hs-identifier hs-var">ByronEraNotSupported</span></a></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-55"></span><span>  </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Byron era not supported&quot;</span></span><span>
+</span><span id="line-56"></span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#renderQueryConvenienceError"><span class="hs-identifier hs-var">renderQueryConvenienceError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#EraConsensusModeMismatch"><span class="hs-identifier hs-type">EraConsensusModeMismatch</span></a></span><span> </span><span id="local-6989586621679633368"><span class="annot"><span class="annottext">AnyConsensusMode
+</span><a href="#local-6989586621679633368"><span class="hs-identifier hs-var">cMode</span></a></span></span><span> </span><span id="local-6989586621679633367"><span class="annot"><span class="annottext">AnyCardanoEra
+</span><a href="#local-6989586621679633367"><span class="hs-identifier hs-var">anyCEra</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-57"></span><span>  </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Consensus mode and era mismatch. Consensus mode: &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">AnyConsensusMode -&gt; Text
+forall a. Show a =&gt; a -&gt; Text
+</span><a href="Cardano.Api.Utils.html#textShow"><span class="hs-identifier hs-var">textShow</span></a></span><span> </span><span class="annot"><span class="annottext">AnyConsensusMode
+</span><a href="#local-6989586621679633368"><span class="hs-identifier hs-var">cMode</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span>
+</span><span id="line-58"></span><span>  </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot; Era: &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">AnyCardanoEra -&gt; Text
+forall a. Show a =&gt; a -&gt; Text
+</span><a href="Cardano.Api.Utils.html#textShow"><span class="hs-identifier hs-var">textShow</span></a></span><span> </span><span class="annot"><span class="annottext">AnyCardanoEra
+</span><a href="#local-6989586621679633367"><span class="hs-identifier hs-var">anyCEra</span></a></span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- | A convenience function to query the relevant information, from</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- the local node, for Cardano.Api.Convenience.Construction.constructBalancedTx</span><span>
+</span><span id="line-62"></span><span id="local-6989586621679633366"><span class="annot"><a href="Cardano.Api.Convenience.Query.html#queryStateForBalancedTx"><span class="hs-identifier hs-type">queryStateForBalancedTx</span></a></span><span>
+</span><span id="line-63"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Api.Eras.html#CardanoEra"><span class="hs-identifier hs-type">CardanoEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633366"><span class="hs-identifier hs-type">era</span></a></span><span>
+</span><span id="line-64"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Api.NetworkId.html#NetworkId"><span class="hs-identifier hs-type">NetworkId</span></a></span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Cardano.Api.TxIn.html#TxIn"><span class="hs-identifier hs-type">TxIn</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#QueryConvenienceError"><span class="hs-identifier hs-type">QueryConvenienceError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Api.Query.html#UTxO"><span class="hs-identifier hs-type">UTxO</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633366"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Api.ProtocolParameters.html#ProtocolParameters"><span class="hs-identifier hs-type">ProtocolParameters</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Cardano.Api.Query.html#EraHistory"><span class="hs-identifier hs-type">EraHistory</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.Modes.html#CardanoMode"><span class="hs-identifier hs-type">CardanoMode</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SystemStart</span></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/containers-0.6.5.1/src"><span class="hs-identifier hs-type">Set</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.Certificate.html#PoolId"><span class="hs-identifier hs-type">PoolId</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
+</span><span id="line-67"></span><span id="queryStateForBalancedTx"><span class="annot"><span class="annottext">queryStateForBalancedTx :: CardanoEra era
+-&gt; NetworkId
+-&gt; [TxIn]
+-&gt; IO
+     (Either
+        QueryConvenienceError
+        (UTxO era, ProtocolParameters, EraHistory CardanoMode, SystemStart,
+         Set PoolId))
+</span><a href="Cardano.Api.Convenience.Query.html#queryStateForBalancedTx"><span class="hs-identifier hs-var hs-var">queryStateForBalancedTx</span></a></span></span><span> </span><span id="local-6989586621679633365"><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633365"><span class="hs-identifier hs-var">era</span></a></span></span><span> </span><span id="local-6989586621679633364"><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679633364"><span class="hs-identifier hs-var">networkId</span></a></span></span><span> </span><span id="local-6989586621679633363"><span class="annot"><span class="annottext">[TxIn]
+</span><a href="#local-6989586621679633363"><span class="hs-identifier hs-var">allTxIns</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ExceptT
+  QueryConvenienceError
+  IO
+  (UTxO era, ProtocolParameters, EraHistory CardanoMode, SystemStart,
+   Set PoolId)
+-&gt; IO
+     (Either
+        QueryConvenienceError
+        (UTxO era, ProtocolParameters, EraHistory CardanoMode, SystemStart,
+         Set PoolId))
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">runExceptT</span></a></span><span> </span><span class="annot"><span class="annottext">(ExceptT
+   QueryConvenienceError
+   IO
+   (UTxO era, ProtocolParameters, EraHistory CardanoMode, SystemStart,
+    Set PoolId)
+ -&gt; IO
+      (Either
+         QueryConvenienceError
+         (UTxO era, ProtocolParameters, EraHistory CardanoMode, SystemStart,
+          Set PoolId)))
+-&gt; ExceptT
+     QueryConvenienceError
+     IO
+     (UTxO era, ProtocolParameters, EraHistory CardanoMode, SystemStart,
+      Set PoolId)
+-&gt; IO
+     (Either
+        QueryConvenienceError
+        (UTxO era, ProtocolParameters, EraHistory CardanoMode, SystemStart,
+         Set PoolId))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-68"></span><span>  </span><span class="annot"><a href="Cardano.Api.Environment.html#SocketPath"><span class="hs-identifier hs-type">SocketPath</span></a></span><span> </span><span id="local-6989586621679633361"><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679633361"><span class="hs-identifier hs-var">sockPath</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Either QueryConvenienceError SocketPath)
+-&gt; ExceptT QueryConvenienceError IO SocketPath
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">ExceptT</span></a></span><span> </span><span class="annot"><span class="annottext">(IO (Either QueryConvenienceError SocketPath)
+ -&gt; ExceptT QueryConvenienceError IO SocketPath)
+-&gt; IO (Either QueryConvenienceError SocketPath)
+-&gt; ExceptT QueryConvenienceError IO SocketPath
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">(EnvSocketError -&gt; QueryConvenienceError)
+-&gt; Either EnvSocketError SocketPath
+-&gt; Either QueryConvenienceError SocketPath
+forall (p :: * -&gt; * -&gt; *) a b c.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; p a c -&gt; p b c
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">first</span></a></span><span> </span><span class="annot"><span class="annottext">EnvSocketError -&gt; QueryConvenienceError
+</span><a href="Cardano.Api.Convenience.Query.html#SockErr"><span class="hs-identifier hs-var">SockErr</span></a></span><span> </span><span class="annot"><span class="annottext">(Either EnvSocketError SocketPath
+ -&gt; Either QueryConvenienceError SocketPath)
+-&gt; IO (Either EnvSocketError SocketPath)
+-&gt; IO (Either QueryConvenienceError SocketPath)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;$&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">IO (Either EnvSocketError SocketPath)
+</span><a href="Cardano.Api.Environment.html#readEnvSocketPath"><span class="hs-identifier hs-var">readEnvSocketPath</span></a></span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679633357"><span class="annot"><span class="annottext">cModeParams :: ConsensusModeParams CardanoMode
+</span><a href="#local-6989586621679633357"><span class="hs-identifier hs-var hs-var">cModeParams</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EpochSlots -&gt; ConsensusModeParams CardanoMode
+</span><a href="Cardano.Api.Modes.html#CardanoModeParams"><span class="hs-identifier hs-var">CardanoModeParams</span></a></span><span> </span><span class="annot"><span class="annottext">(EpochSlots -&gt; ConsensusModeParams CardanoMode)
+-&gt; EpochSlots -&gt; ConsensusModeParams CardanoMode
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">Word64 -&gt; EpochSlots
+</span><span class="hs-identifier hs-var">EpochSlots</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">21600</span></span><span>
+</span><span id="line-71"></span><span>      </span><span id="local-6989586621679633354"><span class="annot"><span class="annottext">localNodeConnInfo :: LocalNodeConnectInfo CardanoMode
+</span><a href="#local-6989586621679633354"><span class="hs-identifier hs-var hs-var">localNodeConnInfo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ConsensusModeParams CardanoMode
+-&gt; NetworkId -&gt; FilePath -&gt; LocalNodeConnectInfo CardanoMode
+forall mode.
+ConsensusModeParams mode
+-&gt; NetworkId -&gt; FilePath -&gt; LocalNodeConnectInfo mode
+</span><a href="Cardano.Api.IPC.html#LocalNodeConnectInfo"><span class="hs-identifier hs-var">LocalNodeConnectInfo</span></a></span><span>
+</span><span id="line-72"></span><span>                            </span><span class="annot"><span class="annottext">ConsensusModeParams CardanoMode
+</span><a href="#local-6989586621679633357"><span class="hs-identifier hs-var">cModeParams</span></a></span><span>
+</span><span id="line-73"></span><span>                            </span><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679633364"><span class="hs-identifier hs-var">networkId</span></a></span><span>
+</span><span id="line-74"></span><span>                            </span><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679633361"><span class="hs-identifier hs-var">sockPath</span></a></span><span>
+</span><span id="line-75"></span><span>
+</span><span id="line-76"></span><span>  </span><span id="local-6989586621679633352"><span class="annot"><span class="annottext">ShelleyBasedEra era
+</span><a href="#local-6989586621679633352"><span class="hs-identifier hs-var">qSbe</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Either QueryConvenienceError (ShelleyBasedEra era)
+-&gt; ExceptT QueryConvenienceError IO (ShelleyBasedEra era)
+forall (m :: * -&gt; *) e a. Monad m =&gt; Either e a -&gt; ExceptT e m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">except</span></a></span><span> </span><span class="annot"><span class="annottext">(Either QueryConvenienceError (ShelleyBasedEra era)
+ -&gt; ExceptT QueryConvenienceError IO (ShelleyBasedEra era))
+-&gt; Either QueryConvenienceError (ShelleyBasedEra era)
+-&gt; ExceptT QueryConvenienceError IO (ShelleyBasedEra era)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEraStyle era
+-&gt; Either QueryConvenienceError (ShelleyBasedEra era)
+forall era.
+CardanoEraStyle era
+-&gt; Either QueryConvenienceError (ShelleyBasedEra era)
+</span><a href="Cardano.Api.Convenience.Query.html#getSbe"><span class="hs-identifier hs-var">getSbe</span></a></span><span> </span><span class="annot"><span class="annottext">(CardanoEraStyle era
+ -&gt; Either QueryConvenienceError (ShelleyBasedEra era))
+-&gt; CardanoEraStyle era
+-&gt; Either QueryConvenienceError (ShelleyBasedEra era)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era -&gt; CardanoEraStyle era
+forall era. CardanoEra era -&gt; CardanoEraStyle era
+</span><a href="Cardano.Api.Eras.html#cardanoEraStyle"><span class="hs-identifier hs-var">cardanoEraStyle</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633365"><span class="hs-identifier hs-var">era</span></a></span><span>
+</span><span id="line-77"></span><span>
+</span><span id="line-78"></span><span>  </span><span id="local-6989586621679633349"><span class="annot"><span class="annottext">EraInMode era CardanoMode
+</span><a href="#local-6989586621679633349"><span class="hs-identifier hs-var">qeInMode</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+-&gt; ConsensusMode CardanoMode -&gt; Maybe (EraInMode era CardanoMode)
+forall era mode.
+CardanoEra era -&gt; ConsensusMode mode -&gt; Maybe (EraInMode era mode)
+</span><a href="Cardano.Api.Modes.html#toEraInMode"><span class="hs-identifier hs-var">toEraInMode</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633365"><span class="hs-identifier hs-var">era</span></a></span><span> </span><span class="annot"><span class="annottext">ConsensusMode CardanoMode
+</span><a href="Cardano.Api.Modes.html#CardanoMode"><span class="hs-identifier hs-var">CardanoMode</span></a></span><span>
+</span><span id="line-79"></span><span>    </span><span class="annot"><span class="annottext">Maybe (EraInMode era CardanoMode)
+-&gt; (Maybe (EraInMode era CardanoMode)
+    -&gt; ExceptT QueryConvenienceError IO (EraInMode era CardanoMode))
+-&gt; ExceptT QueryConvenienceError IO (EraInMode era CardanoMode)
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&amp;</span></a></span><span> </span><span class="annot"><span class="annottext">QueryConvenienceError
+-&gt; Maybe (EraInMode era CardanoMode)
+-&gt; ExceptT QueryConvenienceError IO (EraInMode era CardanoMode)
+forall (m :: * -&gt; *) x a. Monad m =&gt; x -&gt; Maybe a -&gt; ExceptT x m a
+</span><span class="hs-identifier hs-var">hoistMaybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AnyConsensusMode -&gt; AnyCardanoEra -&gt; QueryConvenienceError
+</span><a href="Cardano.Api.Convenience.Query.html#EraConsensusModeMismatch"><span class="hs-identifier hs-var">EraConsensusModeMismatch</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ConsensusMode CardanoMode -&gt; AnyConsensusMode
+forall mode. ConsensusMode mode -&gt; AnyConsensusMode
+</span><a href="Cardano.Api.Modes.html#AnyConsensusMode"><span class="hs-identifier hs-var">AnyConsensusMode</span></a></span><span> </span><span class="annot"><span class="annottext">ConsensusMode CardanoMode
+</span><a href="Cardano.Api.Modes.html#CardanoMode"><span class="hs-identifier hs-var">CardanoMode</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CardanoEra era
+-&gt; (IsCardanoEra era =&gt; AnyCardanoEra) -&gt; AnyCardanoEra
+forall era a. CardanoEra era -&gt; (IsCardanoEra era =&gt; a) -&gt; a
+</span><a href="Cardano.Api.Convenience.Constraints.html#getIsCardanoEraConstraint"><span class="hs-identifier hs-var">getIsCardanoEraConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633365"><span class="hs-identifier hs-var">era</span></a></span><span> </span><span class="annot"><span class="annottext">((IsCardanoEra era =&gt; AnyCardanoEra) -&gt; AnyCardanoEra)
+-&gt; (IsCardanoEra era =&gt; AnyCardanoEra) -&gt; AnyCardanoEra
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era -&gt; AnyCardanoEra
+forall era. IsCardanoEra era =&gt; CardanoEra era -&gt; AnyCardanoEra
+</span><a href="Cardano.Api.Eras.html#AnyCardanoEra"><span class="hs-identifier hs-var">AnyCardanoEra</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633365"><span class="hs-identifier hs-var">era</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-80"></span><span>
+</span><span id="line-81"></span><span>  </span><span class="hs-comment">-- Queries</span><span>
+</span><span id="line-82"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679633343"><span class="annot"><span class="annottext">utxoQuery :: QueryInMode CardanoMode (Either EraMismatch (UTxO era))
+</span><a href="#local-6989586621679633343"><span class="hs-identifier hs-var hs-var">utxoQuery</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EraInMode era CardanoMode
+-&gt; QueryInEra era (UTxO era)
+-&gt; QueryInMode CardanoMode (Either EraMismatch (UTxO era))
+forall era mode result.
+EraInMode era mode
+-&gt; QueryInEra era result
+-&gt; QueryInMode mode (Either EraMismatch result)
+</span><a href="Cardano.Api.Query.html#QueryInEra"><span class="hs-identifier hs-var">QueryInEra</span></a></span><span> </span><span class="annot"><span class="annottext">EraInMode era CardanoMode
+</span><a href="#local-6989586621679633349"><span class="hs-identifier hs-var">qeInMode</span></a></span><span> </span><span class="annot"><span class="annottext">(QueryInEra era (UTxO era)
+ -&gt; QueryInMode CardanoMode (Either EraMismatch (UTxO era)))
+-&gt; QueryInEra era (UTxO era)
+-&gt; QueryInMode CardanoMode (Either EraMismatch (UTxO era))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra era
+-&gt; QueryInShelleyBasedEra era (UTxO era)
+-&gt; QueryInEra era (UTxO era)
+forall era result.
+ShelleyBasedEra era
+-&gt; QueryInShelleyBasedEra era result -&gt; QueryInEra era result
+</span><a href="Cardano.Api.Query.html#QueryInShelleyBasedEra"><span class="hs-identifier hs-var">QueryInShelleyBasedEra</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra era
+</span><a href="#local-6989586621679633352"><span class="hs-identifier hs-var">qSbe</span></a></span><span>
+</span><span id="line-83"></span><span>                    </span><span class="annot"><span class="annottext">(QueryInShelleyBasedEra era (UTxO era)
+ -&gt; QueryInEra era (UTxO era))
+-&gt; QueryInShelleyBasedEra era (UTxO era)
+-&gt; QueryInEra era (UTxO era)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">QueryUTxOFilter -&gt; QueryInShelleyBasedEra era (UTxO era)
+forall era.
+QueryUTxOFilter -&gt; QueryInShelleyBasedEra era (UTxO era)
+</span><a href="Cardano.Api.Query.html#QueryUTxO"><span class="hs-identifier hs-var">QueryUTxO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Set TxIn -&gt; QueryUTxOFilter
+</span><a href="Cardano.Api.Query.html#QueryUTxOByTxIn"><span class="hs-identifier hs-var">QueryUTxOByTxIn</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[TxIn] -&gt; Set TxIn
+forall a. Ord a =&gt; [a] -&gt; Set a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/containers-0.6.5.1/src"><span class="hs-identifier hs-var">Set.fromList</span></a></span><span> </span><span class="annot"><span class="annottext">[TxIn]
+</span><a href="#local-6989586621679633363"><span class="hs-identifier hs-var">allTxIns</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-84"></span><span>      </span><span id="local-6989586621679633337"><span class="annot"><span class="annottext">pparamsQuery :: QueryInMode CardanoMode (Either EraMismatch ProtocolParameters)
+</span><a href="#local-6989586621679633337"><span class="hs-identifier hs-var hs-var">pparamsQuery</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EraInMode era CardanoMode
+-&gt; QueryInEra era ProtocolParameters
+-&gt; QueryInMode CardanoMode (Either EraMismatch ProtocolParameters)
+forall era mode result.
+EraInMode era mode
+-&gt; QueryInEra era result
+-&gt; QueryInMode mode (Either EraMismatch result)
+</span><a href="Cardano.Api.Query.html#QueryInEra"><span class="hs-identifier hs-var">QueryInEra</span></a></span><span> </span><span class="annot"><span class="annottext">EraInMode era CardanoMode
+</span><a href="#local-6989586621679633349"><span class="hs-identifier hs-var">qeInMode</span></a></span><span>
+</span><span id="line-85"></span><span>                        </span><span class="annot"><span class="annottext">(QueryInEra era ProtocolParameters
+ -&gt; QueryInMode CardanoMode (Either EraMismatch ProtocolParameters))
+-&gt; QueryInEra era ProtocolParameters
+-&gt; QueryInMode CardanoMode (Either EraMismatch ProtocolParameters)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra era
+-&gt; QueryInShelleyBasedEra era ProtocolParameters
+-&gt; QueryInEra era ProtocolParameters
+forall era result.
+ShelleyBasedEra era
+-&gt; QueryInShelleyBasedEra era result -&gt; QueryInEra era result
+</span><a href="Cardano.Api.Query.html#QueryInShelleyBasedEra"><span class="hs-identifier hs-var">QueryInShelleyBasedEra</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra era
+</span><a href="#local-6989586621679633352"><span class="hs-identifier hs-var">qSbe</span></a></span><span> </span><span class="annot"><span class="annottext">QueryInShelleyBasedEra era ProtocolParameters
+forall era. QueryInShelleyBasedEra era ProtocolParameters
+</span><a href="Cardano.Api.Query.html#QueryProtocolParameters"><span class="hs-identifier hs-var">QueryProtocolParameters</span></a></span><span>
+</span><span id="line-86"></span><span>      </span><span id="local-6989586621679633335"><span class="annot"><span class="annottext">eraHistoryQuery :: QueryInMode CardanoMode (EraHistory CardanoMode)
+</span><a href="#local-6989586621679633335"><span class="hs-identifier hs-var hs-var">eraHistoryQuery</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ConsensusModeIsMultiEra CardanoMode
+-&gt; QueryInMode CardanoMode (EraHistory CardanoMode)
+forall mode.
+ConsensusModeIsMultiEra mode -&gt; QueryInMode mode (EraHistory mode)
+</span><a href="Cardano.Api.Query.html#QueryEraHistory"><span class="hs-identifier hs-var">QueryEraHistory</span></a></span><span> </span><span class="annot"><span class="annottext">ConsensusModeIsMultiEra CardanoMode
+</span><a href="Cardano.Api.Modes.html#CardanoModeIsMultiEra"><span class="hs-identifier hs-var">CardanoModeIsMultiEra</span></a></span><span>
+</span><span id="line-87"></span><span>      </span><span id="local-6989586621679633332"><span class="annot"><span class="annottext">systemStartQuery :: QueryInMode mode SystemStart
+</span><a href="#local-6989586621679633332"><span class="hs-identifier hs-var hs-var">systemStartQuery</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">QueryInMode mode SystemStart
+forall mode. QueryInMode mode SystemStart
+</span><a href="Cardano.Api.Query.html#QuerySystemStart"><span class="hs-identifier hs-var">QuerySystemStart</span></a></span><span>
+</span><span id="line-88"></span><span>      </span><span id="local-6989586621679633330"><span class="annot"><span class="annottext">stakePoolsQuery :: QueryInMode CardanoMode (Either EraMismatch (Set PoolId))
+</span><a href="#local-6989586621679633330"><span class="hs-identifier hs-var hs-var">stakePoolsQuery</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EraInMode era CardanoMode
+-&gt; QueryInEra era (Set PoolId)
+-&gt; QueryInMode CardanoMode (Either EraMismatch (Set PoolId))
+forall era mode result.
+EraInMode era mode
+-&gt; QueryInEra era result
+-&gt; QueryInMode mode (Either EraMismatch result)
+</span><a href="Cardano.Api.Query.html#QueryInEra"><span class="hs-identifier hs-var">QueryInEra</span></a></span><span> </span><span class="annot"><span class="annottext">EraInMode era CardanoMode
+</span><a href="#local-6989586621679633349"><span class="hs-identifier hs-var">qeInMode</span></a></span><span> </span><span class="annot"><span class="annottext">(QueryInEra era (Set PoolId)
+ -&gt; QueryInMode CardanoMode (Either EraMismatch (Set PoolId)))
+-&gt; (QueryInShelleyBasedEra era (Set PoolId)
+    -&gt; QueryInEra era (Set PoolId))
+-&gt; QueryInShelleyBasedEra era (Set PoolId)
+-&gt; QueryInMode CardanoMode (Either EraMismatch (Set PoolId))
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra era
+-&gt; QueryInShelleyBasedEra era (Set PoolId)
+-&gt; QueryInEra era (Set PoolId)
+forall era result.
+ShelleyBasedEra era
+-&gt; QueryInShelleyBasedEra era result -&gt; QueryInEra era result
+</span><a href="Cardano.Api.Query.html#QueryInShelleyBasedEra"><span class="hs-identifier hs-var">QueryInShelleyBasedEra</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra era
+</span><a href="#local-6989586621679633352"><span class="hs-identifier hs-var">qSbe</span></a></span><span> </span><span class="annot"><span class="annottext">(QueryInShelleyBasedEra era (Set PoolId)
+ -&gt; QueryInMode CardanoMode (Either EraMismatch (Set PoolId)))
+-&gt; QueryInShelleyBasedEra era (Set PoolId)
+-&gt; QueryInMode CardanoMode (Either EraMismatch (Set PoolId))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">QueryInShelleyBasedEra era (Set PoolId)
+forall era. QueryInShelleyBasedEra era (Set PoolId)
+</span><a href="Cardano.Api.Query.html#QueryStakePools"><span class="hs-identifier hs-var">QueryStakePools</span></a></span><span>
+</span><span id="line-89"></span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-comment">-- Query execution</span><span>
+</span><span id="line-91"></span><span>  </span><span id="local-6989586621679633327"><span class="annot"><span class="annottext">UTxO era
+</span><a href="#local-6989586621679633327"><span class="hs-identifier hs-var">utxo</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Either QueryConvenienceError (UTxO era))
+-&gt; ExceptT QueryConvenienceError IO (UTxO era)
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">ExceptT</span></a></span><span> </span><span class="annot"><span class="annottext">(IO (Either QueryConvenienceError (UTxO era))
+ -&gt; ExceptT QueryConvenienceError IO (UTxO era))
+-&gt; IO (Either QueryConvenienceError (UTxO era))
+-&gt; ExceptT QueryConvenienceError IO (UTxO era)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+-&gt; NetworkId
+-&gt; QueryInMode CardanoMode (Either EraMismatch (UTxO era))
+-&gt; IO (Either QueryConvenienceError (UTxO era))
+forall era result.
+CardanoEra era
+-&gt; NetworkId
+-&gt; QueryInMode CardanoMode (Either EraMismatch result)
+-&gt; IO (Either QueryConvenienceError result)
+</span><a href="Cardano.Api.Convenience.Query.html#executeQueryCardanoMode"><span class="hs-identifier hs-var">executeQueryCardanoMode</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633365"><span class="hs-identifier hs-var">era</span></a></span><span> </span><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679633364"><span class="hs-identifier hs-var">networkId</span></a></span><span> </span><span class="annot"><span class="annottext">QueryInMode CardanoMode (Either EraMismatch (UTxO era))
+</span><a href="#local-6989586621679633343"><span class="hs-identifier hs-var">utxoQuery</span></a></span><span>
+</span><span id="line-92"></span><span>  </span><span id="local-6989586621679633326"><span class="annot"><span class="annottext">ProtocolParameters
+</span><a href="#local-6989586621679633326"><span class="hs-identifier hs-var">pparams</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Either QueryConvenienceError ProtocolParameters)
+-&gt; ExceptT QueryConvenienceError IO ProtocolParameters
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">ExceptT</span></a></span><span> </span><span class="annot"><span class="annottext">(IO (Either QueryConvenienceError ProtocolParameters)
+ -&gt; ExceptT QueryConvenienceError IO ProtocolParameters)
+-&gt; IO (Either QueryConvenienceError ProtocolParameters)
+-&gt; ExceptT QueryConvenienceError IO ProtocolParameters
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+-&gt; NetworkId
+-&gt; QueryInMode CardanoMode (Either EraMismatch ProtocolParameters)
+-&gt; IO (Either QueryConvenienceError ProtocolParameters)
+forall era result.
+CardanoEra era
+-&gt; NetworkId
+-&gt; QueryInMode CardanoMode (Either EraMismatch result)
+-&gt; IO (Either QueryConvenienceError result)
+</span><a href="Cardano.Api.Convenience.Query.html#executeQueryCardanoMode"><span class="hs-identifier hs-var">executeQueryCardanoMode</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633365"><span class="hs-identifier hs-var">era</span></a></span><span> </span><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679633364"><span class="hs-identifier hs-var">networkId</span></a></span><span> </span><span class="annot"><span class="annottext">QueryInMode CardanoMode (Either EraMismatch ProtocolParameters)
+</span><a href="#local-6989586621679633337"><span class="hs-identifier hs-var">pparamsQuery</span></a></span><span>
+</span><span id="line-93"></span><span>  </span><span id="local-6989586621679633325"><span class="annot"><span class="annottext">EraHistory CardanoMode
+</span><a href="#local-6989586621679633325"><span class="hs-identifier hs-var">eraHistory</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(AcquiringFailure -&gt; QueryConvenienceError)
+-&gt; ExceptT AcquiringFailure IO (EraHistory CardanoMode)
+-&gt; ExceptT QueryConvenienceError IO (EraHistory CardanoMode)
+forall (m :: * -&gt; *) x y a.
+Functor m =&gt;
+(x -&gt; y) -&gt; ExceptT x m a -&gt; ExceptT y m a
+</span><span class="hs-identifier hs-var">firstExceptT</span></span><span> </span><span class="annot"><span class="annottext">AcquiringFailure -&gt; QueryConvenienceError
+</span><a href="Cardano.Api.Convenience.Query.html#AcqFailure"><span class="hs-identifier hs-var">AcqFailure</span></a></span><span> </span><span class="annot"><span class="annottext">(ExceptT AcquiringFailure IO (EraHistory CardanoMode)
+ -&gt; ExceptT QueryConvenienceError IO (EraHistory CardanoMode))
+-&gt; ExceptT AcquiringFailure IO (EraHistory CardanoMode)
+-&gt; ExceptT QueryConvenienceError IO (EraHistory CardanoMode)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">IO (Either AcquiringFailure (EraHistory CardanoMode))
+-&gt; ExceptT AcquiringFailure IO (EraHistory CardanoMode)
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">ExceptT</span></a></span><span> </span><span class="annot"><span class="annottext">(IO (Either AcquiringFailure (EraHistory CardanoMode))
+ -&gt; ExceptT AcquiringFailure IO (EraHistory CardanoMode))
+-&gt; IO (Either AcquiringFailure (EraHistory CardanoMode))
+-&gt; ExceptT AcquiringFailure IO (EraHistory CardanoMode)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">LocalNodeConnectInfo CardanoMode
+-&gt; Maybe ChainPoint
+-&gt; QueryInMode CardanoMode (EraHistory CardanoMode)
+-&gt; IO (Either AcquiringFailure (EraHistory CardanoMode))
+forall mode result.
+LocalNodeConnectInfo mode
+-&gt; Maybe ChainPoint
+-&gt; QueryInMode mode result
+-&gt; IO (Either AcquiringFailure result)
+</span><a href="Cardano.Api.IPC.html#queryNodeLocalState"><span class="hs-identifier hs-var">queryNodeLocalState</span></a></span><span> </span><span class="annot"><span class="annottext">LocalNodeConnectInfo CardanoMode
+</span><a href="#local-6989586621679633354"><span class="hs-identifier hs-var">localNodeConnInfo</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe ChainPoint
+forall a. Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span> </span><span class="annot"><span class="annottext">QueryInMode CardanoMode (EraHistory CardanoMode)
+</span><a href="#local-6989586621679633335"><span class="hs-identifier hs-var">eraHistoryQuery</span></a></span><span>
+</span><span id="line-94"></span><span>  </span><span id="local-6989586621679633323"><span class="annot"><span class="annottext">SystemStart
+</span><a href="#local-6989586621679633323"><span class="hs-identifier hs-var">systemStart</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(AcquiringFailure -&gt; QueryConvenienceError)
+-&gt; ExceptT AcquiringFailure IO SystemStart
+-&gt; ExceptT QueryConvenienceError IO SystemStart
+forall (m :: * -&gt; *) x y a.
+Functor m =&gt;
+(x -&gt; y) -&gt; ExceptT x m a -&gt; ExceptT y m a
+</span><span class="hs-identifier hs-var">firstExceptT</span></span><span> </span><span class="annot"><span class="annottext">AcquiringFailure -&gt; QueryConvenienceError
+</span><a href="Cardano.Api.Convenience.Query.html#AcqFailure"><span class="hs-identifier hs-var">AcqFailure</span></a></span><span> </span><span class="annot"><span class="annottext">(ExceptT AcquiringFailure IO SystemStart
+ -&gt; ExceptT QueryConvenienceError IO SystemStart)
+-&gt; ExceptT AcquiringFailure IO SystemStart
+-&gt; ExceptT QueryConvenienceError IO SystemStart
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">IO (Either AcquiringFailure SystemStart)
+-&gt; ExceptT AcquiringFailure IO SystemStart
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">ExceptT</span></a></span><span> </span><span class="annot"><span class="annottext">(IO (Either AcquiringFailure SystemStart)
+ -&gt; ExceptT AcquiringFailure IO SystemStart)
+-&gt; IO (Either AcquiringFailure SystemStart)
+-&gt; ExceptT AcquiringFailure IO SystemStart
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">LocalNodeConnectInfo CardanoMode
+-&gt; Maybe ChainPoint
+-&gt; QueryInMode CardanoMode SystemStart
+-&gt; IO (Either AcquiringFailure SystemStart)
+forall mode result.
+LocalNodeConnectInfo mode
+-&gt; Maybe ChainPoint
+-&gt; QueryInMode mode result
+-&gt; IO (Either AcquiringFailure result)
+</span><a href="Cardano.Api.IPC.html#queryNodeLocalState"><span class="hs-identifier hs-var">queryNodeLocalState</span></a></span><span> </span><span class="annot"><span class="annottext">LocalNodeConnectInfo CardanoMode
+</span><a href="#local-6989586621679633354"><span class="hs-identifier hs-var">localNodeConnInfo</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe ChainPoint
+forall a. Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span> </span><span class="annot"><span class="annottext">QueryInMode CardanoMode SystemStart
+forall mode. QueryInMode mode SystemStart
+</span><a href="#local-6989586621679633332"><span class="hs-identifier hs-var">systemStartQuery</span></a></span><span>
+</span><span id="line-95"></span><span>  </span><span id="local-6989586621679633322"><span class="annot"><span class="annottext">Set PoolId
+</span><a href="#local-6989586621679633322"><span class="hs-identifier hs-var">stakePools</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO (Either QueryConvenienceError (Set PoolId))
+-&gt; ExceptT QueryConvenienceError IO (Set PoolId)
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">ExceptT</span></a></span><span> </span><span class="annot"><span class="annottext">(IO (Either QueryConvenienceError (Set PoolId))
+ -&gt; ExceptT QueryConvenienceError IO (Set PoolId))
+-&gt; IO (Either QueryConvenienceError (Set PoolId))
+-&gt; ExceptT QueryConvenienceError IO (Set PoolId)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+-&gt; NetworkId
+-&gt; QueryInMode CardanoMode (Either EraMismatch (Set PoolId))
+-&gt; IO (Either QueryConvenienceError (Set PoolId))
+forall era result.
+CardanoEra era
+-&gt; NetworkId
+-&gt; QueryInMode CardanoMode (Either EraMismatch result)
+-&gt; IO (Either QueryConvenienceError result)
+</span><a href="Cardano.Api.Convenience.Query.html#executeQueryCardanoMode"><span class="hs-identifier hs-var">executeQueryCardanoMode</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633365"><span class="hs-identifier hs-var">era</span></a></span><span> </span><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679633364"><span class="hs-identifier hs-var">networkId</span></a></span><span> </span><span class="annot"><span class="annottext">QueryInMode CardanoMode (Either EraMismatch (Set PoolId))
+</span><a href="#local-6989586621679633330"><span class="hs-identifier hs-var">stakePoolsQuery</span></a></span><span>
+</span><span id="line-96"></span><span>
+</span><span id="line-97"></span><span>  </span><span class="annot"><span class="annottext">(UTxO era, ProtocolParameters, EraHistory CardanoMode, SystemStart,
+ Set PoolId)
+-&gt; ExceptT
+     QueryConvenienceError
+     IO
+     (UTxO era, ProtocolParameters, EraHistory CardanoMode, SystemStart,
+      Set PoolId)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UTxO era
+</span><a href="#local-6989586621679633327"><span class="hs-identifier hs-var">utxo</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ProtocolParameters
+</span><a href="#local-6989586621679633326"><span class="hs-identifier hs-var">pparams</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">EraHistory CardanoMode
+</span><a href="#local-6989586621679633325"><span class="hs-identifier hs-var">eraHistory</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SystemStart
+</span><a href="#local-6989586621679633323"><span class="hs-identifier hs-var">systemStart</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Set PoolId
+</span><a href="#local-6989586621679633322"><span class="hs-identifier hs-var">stakePools</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-98"></span><span>
+</span><span id="line-99"></span><span class="hs-comment">-- | Query the node to determine which era it is in.</span><span>
+</span><span id="line-100"></span><span id="local-6989586621679633321"><span class="annot"><a href="Cardano.Api.Convenience.Query.html#determineEra"><span class="hs-identifier hs-type">determineEra</span></a></span><span>
+</span><span id="line-101"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Api.Modes.html#ConsensusModeParams"><span class="hs-identifier hs-type">ConsensusModeParams</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633321"><span class="hs-identifier hs-type">mode</span></a></span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Api.IPC.html#LocalNodeConnectInfo"><span class="hs-identifier hs-type">LocalNodeConnectInfo</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633321"><span class="hs-identifier hs-type">mode</span></a></span><span>
+</span><span id="line-103"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.IPC.html#AcquiringFailure"><span class="hs-identifier hs-type">AcquiringFailure</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.Eras.html#AnyCardanoEra"><span class="hs-identifier hs-type">AnyCardanoEra</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-104"></span><span id="determineEra"><span class="annot"><span class="annottext">determineEra :: ConsensusModeParams mode
+-&gt; LocalNodeConnectInfo mode
+-&gt; IO (Either AcquiringFailure AnyCardanoEra)
+</span><a href="Cardano.Api.Convenience.Query.html#determineEra"><span class="hs-identifier hs-var hs-var">determineEra</span></a></span></span><span> </span><span id="local-6989586621679633320"><span class="annot"><span class="annottext">ConsensusModeParams mode
+</span><a href="#local-6989586621679633320"><span class="hs-identifier hs-var">cModeParams</span></a></span></span><span> </span><span id="local-6989586621679633319"><span class="annot"><span class="annottext">LocalNodeConnectInfo mode
+</span><a href="#local-6989586621679633319"><span class="hs-identifier hs-var">localNodeConnInfo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-105"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">ConsensusModeParams mode -&gt; ConsensusMode mode
+forall mode. ConsensusModeParams mode -&gt; ConsensusMode mode
+</span><a href="Cardano.Api.IPC.html#consensusModeOnly"><span class="hs-identifier hs-var">consensusModeOnly</span></a></span><span> </span><span class="annot"><span class="annottext">ConsensusModeParams mode
+</span><a href="#local-6989586621679633320"><span class="hs-identifier hs-var">cModeParams</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-106"></span><span>    </span><span class="annot"><span class="annottext">ConsensusMode mode
+</span><a href="Cardano.Api.Modes.html#ByronMode"><span class="hs-identifier hs-var">ByronMode</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Either AcquiringFailure AnyCardanoEra
+-&gt; IO (Either AcquiringFailure AnyCardanoEra)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(Either AcquiringFailure AnyCardanoEra
+ -&gt; IO (Either AcquiringFailure AnyCardanoEra))
+-&gt; (AnyCardanoEra -&gt; Either AcquiringFailure AnyCardanoEra)
+-&gt; AnyCardanoEra
+-&gt; IO (Either AcquiringFailure AnyCardanoEra)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">AnyCardanoEra -&gt; Either AcquiringFailure AnyCardanoEra
+forall a b. b -&gt; Either a b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Right</span></a></span><span> </span><span class="annot"><span class="annottext">(AnyCardanoEra -&gt; IO (Either AcquiringFailure AnyCardanoEra))
+-&gt; AnyCardanoEra -&gt; IO (Either AcquiringFailure AnyCardanoEra)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra ByronEra -&gt; AnyCardanoEra
+forall era. IsCardanoEra era =&gt; CardanoEra era -&gt; AnyCardanoEra
+</span><a href="Cardano.Api.Eras.html#AnyCardanoEra"><span class="hs-identifier hs-var">AnyCardanoEra</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra ByronEra
+</span><a href="Cardano.Api.Eras.html#ByronEra"><span class="hs-identifier hs-var">ByronEra</span></a></span><span>
+</span><span id="line-107"></span><span>    </span><span class="annot"><span class="annottext">ConsensusMode mode
+</span><a href="Cardano.Api.Modes.html#ShelleyMode"><span class="hs-identifier hs-var">ShelleyMode</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Either AcquiringFailure AnyCardanoEra
+-&gt; IO (Either AcquiringFailure AnyCardanoEra)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(Either AcquiringFailure AnyCardanoEra
+ -&gt; IO (Either AcquiringFailure AnyCardanoEra))
+-&gt; (AnyCardanoEra -&gt; Either AcquiringFailure AnyCardanoEra)
+-&gt; AnyCardanoEra
+-&gt; IO (Either AcquiringFailure AnyCardanoEra)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">AnyCardanoEra -&gt; Either AcquiringFailure AnyCardanoEra
+forall a b. b -&gt; Either a b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Right</span></a></span><span> </span><span class="annot"><span class="annottext">(AnyCardanoEra -&gt; IO (Either AcquiringFailure AnyCardanoEra))
+-&gt; AnyCardanoEra -&gt; IO (Either AcquiringFailure AnyCardanoEra)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra ShelleyEra -&gt; AnyCardanoEra
+forall era. IsCardanoEra era =&gt; CardanoEra era -&gt; AnyCardanoEra
+</span><a href="Cardano.Api.Eras.html#AnyCardanoEra"><span class="hs-identifier hs-var">AnyCardanoEra</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra ShelleyEra
+</span><a href="Cardano.Api.Eras.html#ShelleyEra"><span class="hs-identifier hs-var">ShelleyEra</span></a></span><span>
+</span><span id="line-108"></span><span>    </span><span class="annot"><span class="annottext">ConsensusMode mode
+</span><a href="Cardano.Api.Modes.html#CardanoMode"><span class="hs-identifier hs-var">CardanoMode</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-109"></span><span>      </span><span class="annot"><span class="annottext">LocalNodeConnectInfo mode
+-&gt; Maybe ChainPoint
+-&gt; QueryInMode mode AnyCardanoEra
+-&gt; IO (Either AcquiringFailure AnyCardanoEra)
+forall mode result.
+LocalNodeConnectInfo mode
+-&gt; Maybe ChainPoint
+-&gt; QueryInMode mode result
+-&gt; IO (Either AcquiringFailure result)
+</span><a href="Cardano.Api.IPC.html#queryNodeLocalState"><span class="hs-identifier hs-var">queryNodeLocalState</span></a></span><span> </span><span class="annot"><span class="annottext">LocalNodeConnectInfo mode
+</span><a href="#local-6989586621679633319"><span class="hs-identifier hs-var">localNodeConnInfo</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe ChainPoint
+forall a. Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span>
+</span><span id="line-110"></span><span>        </span><span class="annot"><span class="annottext">(QueryInMode mode AnyCardanoEra
+ -&gt; IO (Either AcquiringFailure AnyCardanoEra))
+-&gt; QueryInMode mode AnyCardanoEra
+-&gt; IO (Either AcquiringFailure AnyCardanoEra)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">ConsensusModeIsMultiEra CardanoMode
+-&gt; QueryInMode CardanoMode AnyCardanoEra
+forall mode.
+ConsensusModeIsMultiEra mode -&gt; QueryInMode mode AnyCardanoEra
+</span><a href="Cardano.Api.Query.html#QueryCurrentEra"><span class="hs-identifier hs-var">QueryCurrentEra</span></a></span><span> </span><span class="annot"><span class="annottext">ConsensusModeIsMultiEra CardanoMode
+</span><a href="Cardano.Api.Modes.html#CardanoModeIsMultiEra"><span class="hs-identifier hs-var">CardanoModeIsMultiEra</span></a></span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span id="local-6989586621679633456"><span class="annot"><a href="Cardano.Api.Convenience.Query.html#getSbe"><span class="hs-identifier hs-type">getSbe</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Api.Eras.html#CardanoEraStyle"><span class="hs-identifier hs-type">CardanoEraStyle</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633456"><span class="hs-identifier hs-type">era</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#QueryConvenienceError"><span class="hs-identifier hs-type">QueryConvenienceError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Api.Eras.html#ShelleyBasedEra"><span class="hs-identifier hs-type">ShelleyBasedEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633456"><span class="hs-identifier hs-type">era</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-113"></span><span id="getSbe"><span class="annot"><span class="annottext">getSbe :: CardanoEraStyle era
+-&gt; Either QueryConvenienceError (ShelleyBasedEra era)
+</span><a href="Cardano.Api.Convenience.Query.html#getSbe"><span class="hs-identifier hs-var hs-var">getSbe</span></a></span></span><span> </span><span class="annot"><span class="annottext">CardanoEraStyle era
+</span><a href="Cardano.Api.Eras.html#LegacyByronEra"><span class="hs-identifier hs-var">LegacyByronEra</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">QueryConvenienceError
+-&gt; Either QueryConvenienceError (ShelleyBasedEra era)
+forall a b. a -&gt; Either a b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Left</span></a></span><span> </span><span class="annot"><span class="annottext">QueryConvenienceError
+</span><a href="Cardano.Api.Convenience.Query.html#ByronEraNotSupported"><span class="hs-identifier hs-var">ByronEraNotSupported</span></a></span><span>
+</span><span id="line-114"></span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#getSbe"><span class="hs-identifier hs-var">getSbe</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Cardano.Api.Eras.html#ShelleyBasedEra"><span class="hs-identifier hs-type">ShelleyBasedEra</span></a></span><span> </span><span id="local-6989586621679633310"><span class="annot"><span class="annottext">ShelleyBasedEra era
+</span><a href="#local-6989586621679633310"><span class="hs-identifier hs-var">sbe</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra era
+-&gt; Either QueryConvenienceError (ShelleyBasedEra era)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">ShelleyBasedEra era
+</span><a href="#local-6989586621679633310"><span class="hs-identifier hs-var">sbe</span></a></span><span>
+</span><span id="line-115"></span><span>
+</span><span id="line-116"></span><span class="hs-comment">-- | Execute a query against the local node. The local</span><span>
+</span><span id="line-117"></span><span class="hs-comment">-- node must be in CardanoMode.</span><span>
+</span><span id="line-118"></span><span id="local-6989586621679633419"><span id="local-6989586621679633420"><span class="annot"><a href="Cardano.Api.Convenience.Query.html#executeQueryCardanoMode"><span class="hs-identifier hs-type">executeQueryCardanoMode</span></a></span><span>
+</span><span id="line-119"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Cardano.Api.Eras.html#CardanoEra"><span class="hs-identifier hs-type">CardanoEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633420"><span class="hs-identifier hs-type">era</span></a></span><span>
+</span><span id="line-120"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Api.NetworkId.html#NetworkId"><span class="hs-identifier hs-type">NetworkId</span></a></span><span>
+</span><span id="line-121"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Api.Query.html#QueryInMode"><span class="hs-identifier hs-type">QueryInMode</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.Modes.html#CardanoMode"><span class="hs-identifier hs-type">CardanoMode</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">EraMismatch</span></span><span> </span><span class="annot"><a href="#local-6989586621679633419"><span class="hs-identifier hs-type">result</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-122"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#QueryConvenienceError"><span class="hs-identifier hs-type">QueryConvenienceError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633419"><span class="hs-identifier hs-type">result</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-123"></span><span id="executeQueryCardanoMode"><span class="annot"><span class="annottext">executeQueryCardanoMode :: CardanoEra era
+-&gt; NetworkId
+-&gt; QueryInMode CardanoMode (Either EraMismatch result)
+-&gt; IO (Either QueryConvenienceError result)
+</span><a href="Cardano.Api.Convenience.Query.html#executeQueryCardanoMode"><span class="hs-identifier hs-var hs-var">executeQueryCardanoMode</span></a></span></span><span> </span><span id="local-6989586621679633309"><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633309"><span class="hs-identifier hs-var">era</span></a></span></span><span> </span><span id="local-6989586621679633308"><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679633308"><span class="hs-identifier hs-var">nid</span></a></span></span><span> </span><span id="local-6989586621679633307"><span class="annot"><span class="annottext">QueryInMode CardanoMode (Either EraMismatch result)
+</span><a href="#local-6989586621679633307"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ExceptT QueryConvenienceError IO result
+-&gt; IO (Either QueryConvenienceError result)
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">runExceptT</span></a></span><span> </span><span class="annot"><span class="annottext">(ExceptT QueryConvenienceError IO result
+ -&gt; IO (Either QueryConvenienceError result))
+-&gt; ExceptT QueryConvenienceError IO result
+-&gt; IO (Either QueryConvenienceError result)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-124"></span><span>  </span><span class="annot"><a href="Cardano.Api.Environment.html#SocketPath"><span class="hs-identifier hs-type">SocketPath</span></a></span><span> </span><span id="local-6989586621679633306"><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679633306"><span class="hs-identifier hs-var">sockPath</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(EnvSocketError -&gt; QueryConvenienceError)
+-&gt; ExceptT EnvSocketError IO SocketPath
+-&gt; ExceptT QueryConvenienceError IO SocketPath
+forall (m :: * -&gt; *) x y a.
+Functor m =&gt;
+(x -&gt; y) -&gt; ExceptT x m a -&gt; ExceptT y m a
+</span><span class="hs-identifier hs-var">firstExceptT</span></span><span> </span><span class="annot"><span class="annottext">EnvSocketError -&gt; QueryConvenienceError
+</span><a href="Cardano.Api.Convenience.Query.html#SockErr"><span class="hs-identifier hs-var">SockErr</span></a></span><span> </span><span class="annot"><span class="annottext">(ExceptT EnvSocketError IO SocketPath
+ -&gt; ExceptT QueryConvenienceError IO SocketPath)
+-&gt; (IO (Either EnvSocketError SocketPath)
+    -&gt; ExceptT EnvSocketError IO SocketPath)
+-&gt; IO (Either EnvSocketError SocketPath)
+-&gt; ExceptT QueryConvenienceError IO SocketPath
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">.</span></a></span><span> </span><span class="annot"><span class="annottext">IO (Either EnvSocketError SocketPath)
+-&gt; ExceptT EnvSocketError IO SocketPath
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">ExceptT</span></a></span><span> </span><span class="annot"><span class="annottext">(IO (Either EnvSocketError SocketPath)
+ -&gt; ExceptT QueryConvenienceError IO SocketPath)
+-&gt; IO (Either EnvSocketError SocketPath)
+-&gt; ExceptT QueryConvenienceError IO SocketPath
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">IO (Either EnvSocketError SocketPath)
+</span><a href="Cardano.Api.Environment.html#readEnvSocketPath"><span class="hs-identifier hs-var">readEnvSocketPath</span></a></span><span>
+</span><span id="line-125"></span><span>
+</span><span id="line-126"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679633305"><span class="annot"><span class="annottext">localConnectInfo :: LocalNodeConnectInfo CardanoMode
+</span><a href="#local-6989586621679633305"><span class="hs-identifier hs-var hs-var">localConnectInfo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-127"></span><span>        </span><span class="annot"><span class="annottext">LocalNodeConnectInfo :: forall mode.
+ConsensusModeParams mode
+-&gt; NetworkId -&gt; FilePath -&gt; LocalNodeConnectInfo mode
+</span><a href="Cardano.Api.IPC.html#LocalNodeConnectInfo"><span class="hs-identifier hs-type">LocalNodeConnectInfo</span></a></span><span>
+</span><span id="line-128"></span><span>          </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">localConsensusModeParams :: ConsensusModeParams CardanoMode
+</span><a href="Cardano.Api.IPC.html#localConsensusModeParams"><span class="hs-identifier hs-var">localConsensusModeParams</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EpochSlots -&gt; ConsensusModeParams CardanoMode
+</span><a href="Cardano.Api.Modes.html#CardanoModeParams"><span class="hs-identifier hs-var">CardanoModeParams</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; EpochSlots
+</span><span class="hs-identifier hs-var">EpochSlots</span></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><span class="hs-number">21600</span></span><span class="hs-special">)</span><span>
+</span><span id="line-129"></span><span>          </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">localNodeNetworkId :: NetworkId
+</span><a href="Cardano.Api.IPC.html#localNodeNetworkId"><span class="hs-identifier hs-var">localNodeNetworkId</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NetworkId
+</span><a href="#local-6989586621679633308"><span class="hs-identifier hs-var">nid</span></a></span><span>
+</span><span id="line-130"></span><span>          </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">localNodeSocketPath :: FilePath
+</span><a href="Cardano.Api.IPC.html#localNodeSocketPath"><span class="hs-identifier hs-var">localNodeSocketPath</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">FilePath
+</span><a href="#local-6989586621679633306"><span class="hs-identifier hs-var">sockPath</span></a></span><span>
+</span><span id="line-131"></span><span>          </span><span class="hs-special">}</span><span>
+</span><span id="line-132"></span><span>
+</span><span id="line-133"></span><span>  </span><span class="annot"><span class="annottext">IO (Either QueryConvenienceError result)
+-&gt; ExceptT QueryConvenienceError IO result
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/transformers-0.5.6.2/src"><span class="hs-identifier hs-var">ExceptT</span></a></span><span> </span><span class="annot"><span class="annottext">(IO (Either QueryConvenienceError result)
+ -&gt; ExceptT QueryConvenienceError IO result)
+-&gt; IO (Either QueryConvenienceError result)
+-&gt; ExceptT QueryConvenienceError IO result
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+-&gt; LocalNodeConnectInfo CardanoMode
+-&gt; QueryInMode CardanoMode (Either EraMismatch result)
+-&gt; IO (Either QueryConvenienceError result)
+forall result era mode.
+CardanoEra era
+-&gt; LocalNodeConnectInfo mode
+-&gt; QueryInMode mode (Either EraMismatch result)
+-&gt; IO (Either QueryConvenienceError result)
+</span><a href="Cardano.Api.Convenience.Query.html#executeQueryAnyMode"><span class="hs-identifier hs-var">executeQueryAnyMode</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633309"><span class="hs-identifier hs-var">era</span></a></span><span> </span><span class="annot"><span class="annottext">LocalNodeConnectInfo CardanoMode
+</span><a href="#local-6989586621679633305"><span class="hs-identifier hs-var">localConnectInfo</span></a></span><span> </span><span class="annot"><span class="annottext">QueryInMode CardanoMode (Either EraMismatch result)
+</span><a href="#local-6989586621679633307"><span class="hs-identifier hs-var">q</span></a></span><span>
+</span><span id="line-134"></span><span>
+</span><span id="line-135"></span><span class="hs-comment">-- | Execute a query against the local node in any mode.</span><span>
+</span><span id="line-136"></span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#executeQueryAnyMode"><span class="hs-identifier hs-type">executeQueryAnyMode</span></a></span><span>
+</span><span id="line-137"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679633396"><span class="annot"><a href="#local-6989586621679633396"><span class="hs-identifier hs-type">result</span></a></span></span><span> </span><span id="local-6989586621679633398"><span class="annot"><a href="#local-6989586621679633398"><span class="hs-identifier hs-type">era</span></a></span></span><span> </span><span id="local-6989586621679633397"><span class="annot"><a href="#local-6989586621679633397"><span class="hs-identifier hs-type">mode</span></a></span></span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="Cardano.Api.Eras.html#CardanoEra"><span class="hs-identifier hs-type">CardanoEra</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633398"><span class="hs-identifier hs-type">era</span></a></span><span>
+</span><span id="line-138"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Api.IPC.html#LocalNodeConnectInfo"><span class="hs-identifier hs-type">LocalNodeConnectInfo</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633397"><span class="hs-identifier hs-type">mode</span></a></span><span>
+</span><span id="line-139"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Cardano.Api.Query.html#QueryInMode"><span class="hs-identifier hs-type">QueryInMode</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633397"><span class="hs-identifier hs-type">mode</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">EraMismatch</span></span><span> </span><span class="annot"><a href="#local-6989586621679633396"><span class="hs-identifier hs-type">result</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-140"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#QueryConvenienceError"><span class="hs-identifier hs-type">QueryConvenienceError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633396"><span class="hs-identifier hs-type">result</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-141"></span><span id="executeQueryAnyMode"><span class="annot"><span class="annottext">executeQueryAnyMode :: CardanoEra era
+-&gt; LocalNodeConnectInfo mode
+-&gt; QueryInMode mode (Either EraMismatch result)
+-&gt; IO (Either QueryConvenienceError result)
+</span><a href="Cardano.Api.Convenience.Query.html#executeQueryAnyMode"><span class="hs-identifier hs-var hs-var">executeQueryAnyMode</span></a></span></span><span> </span><span id="local-6989586621679633300"><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633300"><span class="hs-identifier hs-var">era</span></a></span></span><span> </span><span id="local-6989586621679633299"><span class="annot"><span class="annottext">LocalNodeConnectInfo mode
+</span><a href="#local-6989586621679633299"><span class="hs-identifier hs-var">localNodeConnInfo</span></a></span></span><span> </span><span id="local-6989586621679633298"><span class="annot"><span class="annottext">QueryInMode mode (Either EraMismatch result)
+</span><a href="#local-6989586621679633298"><span class="hs-identifier hs-var">q</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-142"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679633297"><span class="annot"><span class="annottext">cMode :: ConsensusMode mode
+</span><a href="#local-6989586621679633297"><span class="hs-identifier hs-var hs-var">cMode</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ConsensusModeParams mode -&gt; ConsensusMode mode
+forall mode. ConsensusModeParams mode -&gt; ConsensusMode mode
+</span><a href="Cardano.Api.IPC.html#consensusModeOnly"><span class="hs-identifier hs-var">consensusModeOnly</span></a></span><span> </span><span class="annot"><span class="annottext">(ConsensusModeParams mode -&gt; ConsensusMode mode)
+-&gt; ConsensusModeParams mode -&gt; ConsensusMode mode
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">LocalNodeConnectInfo mode -&gt; ConsensusModeParams mode
+forall mode. LocalNodeConnectInfo mode -&gt; ConsensusModeParams mode
+</span><a href="Cardano.Api.IPC.html#localConsensusModeParams"><span class="hs-identifier hs-var hs-var">localConsensusModeParams</span></a></span><span> </span><span class="annot"><span class="annottext">LocalNodeConnectInfo mode
+</span><a href="#local-6989586621679633299"><span class="hs-identifier hs-var">localNodeConnInfo</span></a></span><span>
+</span><span id="line-143"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">CardanoEra era -&gt; ConsensusMode mode -&gt; Maybe (EraInMode era mode)
+forall era mode.
+CardanoEra era -&gt; ConsensusMode mode -&gt; Maybe (EraInMode era mode)
+</span><a href="Cardano.Api.Modes.html#toEraInMode"><span class="hs-identifier hs-var">toEraInMode</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633300"><span class="hs-identifier hs-var">era</span></a></span><span> </span><span class="annot"><span class="annottext">ConsensusMode mode
+</span><a href="#local-6989586621679633297"><span class="hs-identifier hs-var">cMode</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-144"></span><span>    </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Just</span></a></span><span> </span><span id="local-6989586621679633296"><span class="annot"><span class="annottext">EraInMode era mode
+</span><a href="#local-6989586621679633296"><span class="hs-identifier hs-var">eraInMode</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-145"></span><span>      </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">EraInMode era mode
+</span><a href="#local-6989586621679633296"><span class="hs-identifier hs-var">eraInMode</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-146"></span><span>        </span><span class="annot"><span class="annottext">EraInMode era mode
+</span><a href="Cardano.Api.Modes.html#ByronEraInByronMode"><span class="hs-identifier hs-var">ByronEraInByronMode</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Either QueryConvenienceError result
+-&gt; IO (Either QueryConvenienceError result)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(Either QueryConvenienceError result
+ -&gt; IO (Either QueryConvenienceError result))
+-&gt; Either QueryConvenienceError result
+-&gt; IO (Either QueryConvenienceError result)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">QueryConvenienceError -&gt; Either QueryConvenienceError result
+forall a b. a -&gt; Either a b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Left</span></a></span><span> </span><span class="annot"><span class="annottext">QueryConvenienceError
+</span><a href="Cardano.Api.Convenience.Query.html#ByronEraNotSupported"><span class="hs-identifier hs-var">ByronEraNotSupported</span></a></span><span>
+</span><span id="line-147"></span><span>        </span><span class="annot"><span class="annottext">EraInMode era mode
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">IO (Either QueryConvenienceError result)
+</span><a href="#local-6989586621679633294"><span class="hs-identifier hs-var">execQuery</span></a></span><span>
+</span><span id="line-148"></span><span>    </span><span class="annot"><span class="annottext">Maybe (EraInMode era mode)
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Either QueryConvenienceError result
+-&gt; IO (Either QueryConvenienceError result)
+forall (m :: * -&gt; *) a. Monad m =&gt; a -&gt; m a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">return</span></a></span><span> </span><span class="annot"><span class="annottext">(Either QueryConvenienceError result
+ -&gt; IO (Either QueryConvenienceError result))
+-&gt; Either QueryConvenienceError result
+-&gt; IO (Either QueryConvenienceError result)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">QueryConvenienceError -&gt; Either QueryConvenienceError result
+forall a b. a -&gt; Either a b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Left</span></a></span><span> </span><span class="annot"><span class="annottext">(QueryConvenienceError -&gt; Either QueryConvenienceError result)
+-&gt; QueryConvenienceError -&gt; Either QueryConvenienceError result
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">AnyConsensusMode -&gt; AnyCardanoEra -&gt; QueryConvenienceError
+</span><a href="Cardano.Api.Convenience.Query.html#EraConsensusModeMismatch"><span class="hs-identifier hs-var">EraConsensusModeMismatch</span></a></span><span>
+</span><span id="line-149"></span><span>                                      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ConsensusMode CardanoMode -&gt; AnyConsensusMode
+forall mode. ConsensusMode mode -&gt; AnyConsensusMode
+</span><a href="Cardano.Api.Modes.html#AnyConsensusMode"><span class="hs-identifier hs-var">AnyConsensusMode</span></a></span><span> </span><span class="annot"><span class="annottext">ConsensusMode CardanoMode
+</span><a href="Cardano.Api.Modes.html#CardanoMode"><span class="hs-identifier hs-var">CardanoMode</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-150"></span><span>                                      </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CardanoEra era
+-&gt; (IsCardanoEra era =&gt; AnyCardanoEra) -&gt; AnyCardanoEra
+forall era a. CardanoEra era -&gt; (IsCardanoEra era =&gt; a) -&gt; a
+</span><a href="Cardano.Api.Convenience.Constraints.html#getIsCardanoEraConstraint"><span class="hs-identifier hs-var">getIsCardanoEraConstraint</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633300"><span class="hs-identifier hs-var">era</span></a></span><span> </span><span class="annot"><span class="annottext">((IsCardanoEra era =&gt; AnyCardanoEra) -&gt; AnyCardanoEra)
+-&gt; (IsCardanoEra era =&gt; AnyCardanoEra) -&gt; AnyCardanoEra
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">$</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era -&gt; AnyCardanoEra
+forall era. IsCardanoEra era =&gt; CardanoEra era -&gt; AnyCardanoEra
+</span><a href="Cardano.Api.Eras.html#AnyCardanoEra"><span class="hs-identifier hs-var">AnyCardanoEra</span></a></span><span> </span><span class="annot"><span class="annottext">CardanoEra era
+</span><a href="#local-6989586621679633300"><span class="hs-identifier hs-var">era</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-151"></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-152"></span><span>  </span><span class="annot"><a href="#local-6989586621679633294"><span class="hs-identifier hs-type">execQuery</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/ghc-prim-0.6.1/src"><span class="hs-identifier hs-type">IO</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#QueryConvenienceError"><span class="hs-identifier hs-type">QueryConvenienceError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633396"><span class="hs-identifier hs-type">result</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-153"></span><span>  </span><span id="local-6989586621679633294"><span class="annot"><span class="annottext">execQuery :: IO (Either QueryConvenienceError result)
+</span><a href="#local-6989586621679633294"><span class="hs-identifier hs-var hs-var">execQuery</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either AcquiringFailure (Either EraMismatch result)
+-&gt; Either QueryConvenienceError result
+forall a.
+Either AcquiringFailure (Either EraMismatch a)
+-&gt; Either QueryConvenienceError a
+</span><a href="Cardano.Api.Convenience.Query.html#collapse"><span class="hs-identifier hs-var">collapse</span></a></span><span> </span><span class="annot"><span class="annottext">(Either AcquiringFailure (Either EraMismatch result)
+ -&gt; Either QueryConvenienceError result)
+-&gt; IO (Either AcquiringFailure (Either EraMismatch result))
+-&gt; IO (Either QueryConvenienceError result)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-operator hs-var">&lt;$&gt;</span></a></span><span> </span><span class="annot"><span class="annottext">LocalNodeConnectInfo mode
+-&gt; Maybe ChainPoint
+-&gt; QueryInMode mode (Either EraMismatch result)
+-&gt; IO (Either AcquiringFailure (Either EraMismatch result))
+forall mode result.
+LocalNodeConnectInfo mode
+-&gt; Maybe ChainPoint
+-&gt; QueryInMode mode result
+-&gt; IO (Either AcquiringFailure result)
+</span><a href="Cardano.Api.IPC.html#queryNodeLocalState"><span class="hs-identifier hs-var">queryNodeLocalState</span></a></span><span> </span><span class="annot"><span class="annottext">LocalNodeConnectInfo mode
+</span><a href="#local-6989586621679633299"><span class="hs-identifier hs-var">localNodeConnInfo</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe ChainPoint
+forall a. Maybe a
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">Nothing</span></a></span><span> </span><span class="annot"><span class="annottext">QueryInMode mode (Either EraMismatch result)
+</span><a href="#local-6989586621679633298"><span class="hs-identifier hs-var">q</span></a></span><span>
+</span><span id="line-154"></span><span>
+</span><span id="line-155"></span><span id="local-6989586621679633392"><span class="annot"><a href="Cardano.Api.Convenience.Query.html#collapse"><span class="hs-identifier hs-type">collapse</span></a></span><span>
+</span><span id="line-156"></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.IPC.html#AcquiringFailure"><span class="hs-identifier hs-type">AcquiringFailure</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">EraMismatch</span></span><span> </span><span class="annot"><a href="#local-6989586621679633392"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-157"></span><span>  </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-type">Either</span></a></span><span> </span><span class="annot"><a href="Cardano.Api.Convenience.Query.html#QueryConvenienceError"><span class="hs-identifier hs-type">QueryConvenienceError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679633392"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-158"></span><span id="collapse"><span class="annot"><span class="annottext">collapse :: Either AcquiringFailure (Either EraMismatch a)
+-&gt; Either QueryConvenienceError a
+</span><a href="Cardano.Api.Convenience.Query.html#collapse"><span class="hs-identifier hs-var hs-var">collapse</span></a></span></span><span> </span><span id="local-6989586621679633292"><span class="annot"><span class="annottext">Either AcquiringFailure (Either EraMismatch a)
+</span><a href="#local-6989586621679633292"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-159"></span><span> </span><span id="local-6989586621679633291"><span class="annot"><span class="annottext">Either EraMismatch a
+</span><a href="#local-6989586621679633291"><span class="hs-identifier hs-var">innerRes</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">(AcquiringFailure -&gt; QueryConvenienceError)
+-&gt; Either AcquiringFailure (Either EraMismatch a)
+-&gt; Either QueryConvenienceError (Either EraMismatch a)
+forall (p :: * -&gt; * -&gt; *) a b c.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; p a c -&gt; p b c
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">first</span></a></span><span> </span><span class="annot"><span class="annottext">AcquiringFailure -&gt; QueryConvenienceError
+</span><a href="Cardano.Api.Convenience.Query.html#AcqFailure"><span class="hs-identifier hs-var">AcqFailure</span></a></span><span> </span><span class="annot"><span class="annottext">Either AcquiringFailure (Either EraMismatch a)
+</span><a href="#local-6989586621679633292"><span class="hs-identifier hs-var">res</span></a></span><span>
+</span><span id="line-160"></span><span> </span><span class="annot"><span class="annottext">(EraMismatch -&gt; QueryConvenienceError)
+-&gt; Either EraMismatch a -&gt; Either QueryConvenienceError a
+forall (p :: * -&gt; * -&gt; *) a b c.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; p a c -&gt; p b c
+</span><a href="../file:///usr/local/.ghcup/ghc/8.10.7/share/doc/ghc-8.10.7/html/libraries/base-4.14.3.0/src"><span class="hs-identifier hs-var">first</span></a></span><span> </span><span class="annot"><span class="annottext">EraMismatch -&gt; QueryConvenienceError
+</span><a href="Cardano.Api.Convenience.Query.html#QueryEraMismatch"><span class="hs-identifier hs-var">QueryEraMismatch</span></a></span><span> </span><span class="annot"><span class="annottext">Either EraMismatch a
+</span><a href="#local-6989586621679633291"><span class="hs-identifier hs-var">innerRes</span></a></span><span>
+</span><span id="line-161"></span><span>
+</span><span id="line-162"></span></pre></body></html>
